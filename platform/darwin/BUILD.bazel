@@ -222,7 +222,7 @@ objc_library(
         "-fmodules",
     ],
     defines = [
-        "GLES_SILENCE_DEPRECATION=1",
+        "MAPBOX_PUCK_ASSETS_PATH=1",
         "GL_SILENCE_DEPRECATION=1",
     ],
     includes = [

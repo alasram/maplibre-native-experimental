@@ -2,8 +2,10 @@
 #include <mbgl/gl/uniform_buffer_gl.hpp>
 #include <mbgl/gl/defines.hpp>
 #include <mbgl/util/compression.hpp>
+#include <mbgl/util/instrumentation.hpp>
 #include <mbgl/util/logging.hpp>
 
+#include <atomic>
 #include <vector>
 #include <cassert>
 
@@ -12,9 +14,20 @@ namespace gl {
 
 using namespace platform;
 
+namespace {
+
+int64_t generateDebugId() noexcept {
+    static std::atomic_int64_t counter(0);
+    return ++counter;
+}
+
+} // namespace
+
 UniformBufferGL::UniformBufferGL(const void* data_, std::size_t size_, IBufferAllocator& allocator_)
     : UniformBuffer(size_),
+      uniqueDebugId(generateDebugId()),
       managedBuffer(allocator_, this) {
+    MLN_TRACE_ALLOC_CONST_BUFFER(uniqueDebugId, size_);
     if (size_ > managedBuffer.allocator.pageSize()) {
         // Buffer is very large, won't fit in the provided allocator
         MBGL_CHECK_ERROR(glGenBuffers(1, &localID));
@@ -30,15 +43,19 @@ UniformBufferGL::UniformBufferGL(const void* data_, std::size_t size_, IBufferAl
 
 UniformBufferGL::UniformBufferGL(UniformBufferGL&& rhs) noexcept
     : UniformBuffer(rhs.size),
+      uniqueDebugId(rhs.uniqueDebugId),
       isManagedAllocation(rhs.isManagedAllocation),
       localID(rhs.localID),
       managedBuffer(std::move(rhs.managedBuffer)) {
     managedBuffer.setOwner(this);
+    rhs.uniqueDebugId = -1;
 }
 
 UniformBufferGL::UniformBufferGL(const UniformBufferGL& other)
     : UniformBuffer(other),
+      uniqueDebugId(generateDebugId()),
       managedBuffer(other.managedBuffer.allocator, this) {
+    MLN_TRACE_ALLOC_CONST_BUFFER(uniqueDebugId, other.size);
     managedBuffer.setOwner(this);
     if (other.isManagedAllocation) {
         managedBuffer.allocate(other.managedBuffer.getContents().data(), other.size);
@@ -52,6 +69,8 @@ UniformBufferGL::UniformBufferGL(const UniformBufferGL& other)
 }
 
 UniformBufferGL::~UniformBufferGL() {
+    assert(uniqueDebugId > 0);
+    MLN_TRACE_FREE_CONST_BUFFER(uniqueDebugId);
     if (isManagedAllocation) {
         return;
     }

@@ -27,6 +27,10 @@ public:
     void update(const void* data, std::size_t size_) override;
 
 private:
+    // unique id used for debugging and profiling purposes
+    // localID should not be used as unique id because a const buffer pool is managed using IBufferAllocator
+    int64_t uniqueDebugId = -1;
+
     // If the requested UBO size is too large for the allocator, the UBO will manage its own allocation
     bool isManagedAllocation = false;
     BufferID localID;
