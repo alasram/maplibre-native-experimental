@@ -72,6 +72,10 @@ To test the Node.js bindings:
 npm test
 ```
 
+## Profiling
+
+[maplibre-native/docs/mdbook](https://maplibre.org/maplibre-native/docs/book/) describes how Tracy can be used for profiling.
+
 ## Merging your pull request
 
 To clean up your pull request and prepare it for merging, update your local `main` branch, then run `git rebase -i main` from your pull request branch to squash/fixup commits as needed. When your work is ready to be merged, you can run `git merge --ff-only YOUR_BRANCH` from `main` or click the green merge button in the GitHub UI, which will automatically squash your branch down into a single commit before merging it.
