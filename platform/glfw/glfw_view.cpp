@@ -24,6 +24,7 @@
 #include <mbgl/util/interpolate.hpp>
 #include <mbgl/util/io.hpp>
 #include <mbgl/util/logging.hpp>
+#include <mbgl/util/instrumentation.hpp>
 #include <mbgl/util/platform.hpp>
 #include <mbgl/util/string.hpp>
 
@@ -965,7 +966,11 @@ void GLFWView::onWindowFocus(GLFWwindow *window, int focused) {
 }
 
 void GLFWView::run() {
+    MLB_TRACE_FUNC();
+
     auto callback = [&] {
+        MLB_TRACE_ZONE(GLFWView_runLoop_callback);
+
         if (glfwWindowShouldClose(window)) {
             runLoop.stop();
             return;

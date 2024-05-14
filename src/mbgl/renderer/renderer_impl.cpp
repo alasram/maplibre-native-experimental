@@ -17,6 +17,7 @@
 #include <mbgl/util/convert.hpp>
 #include <mbgl/util/string.hpp>
 #include <mbgl/util/logging.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #if MLN_DRAWABLE_RENDERER
 #include <mbgl/gfx/drawable_tweaker.hpp>
@@ -73,6 +74,7 @@ void Renderer::Impl::setObserver(RendererObserver* observer_) {
 
 void Renderer::Impl::render(const RenderTree& renderTree,
                             [[maybe_unused]] const std::shared_ptr<UpdateParameters>& updateParameters) {
+    MLB_TRACE_FUNC();
     auto& context = backend.getContext();
 #if MLN_RENDER_BACKEND_METAL
     if constexpr (EnableMetalCapture) {
@@ -538,6 +540,7 @@ void Renderer::Impl::render(const RenderTree& renderTree,
     }
 
     frameCount += 1;
+    MLB_END_FRAME();
 }
 
 void Renderer::Impl::reduceMemoryUse() {
