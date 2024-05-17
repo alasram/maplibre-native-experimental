@@ -29,6 +29,7 @@ void GLFWRendererFrontend::update(std::shared_ptr<mbgl::UpdateParameters> params
 
 void GLFWRendererFrontend::render() {
     MLB_TRACE_FUNC();
+
     assert(renderer);
 
     if (!updateParameters) return;
