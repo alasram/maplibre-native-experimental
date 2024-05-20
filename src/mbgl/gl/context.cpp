@@ -11,6 +11,7 @@
 #include <mbgl/gl/texture.hpp>
 #include <mbgl/gl/offscreen_texture.hpp>
 #include <mbgl/gl/debugging_extension.hpp>
+#include <mbgl/gl/timestamp_query_extension.hpp>
 #include <mbgl/renderer/paint_parameters.hpp>
 #include <mbgl/util/traits.hpp>
 #include <mbgl/util/std.hpp>
@@ -150,7 +151,10 @@ void Context::initializeExtensions(const std::function<gl::ProcAddress(const cha
         if (!(renderer.find("ANGLE") != std::string::npos && renderer.find("Direct3D") != std::string::npos)) {
             debugging = std::make_unique<extension::Debugging>(fn);
         }
+
+        extension::loadTimeStampQueryExtension(fn);
     }
+    MLB_TRACE_GL_CONTEXT();
 }
 
 void Context::enableDebugging() {
@@ -333,6 +337,7 @@ std::unique_ptr<uint8_t[]> Context::readFramebuffer(const Size size,
                                                     const gfx::TexturePixelType format,
                                                     const bool flip) {
     MLB_TRACE_FUNC();
+    MLB_TRACE_FUNC_GL();
 
     const size_t stride = size.width * (format == gfx::TexturePixelType::RGBA ? 4 : 1);
     auto data = std::make_unique<uint8_t[]>(stride * size.height);
@@ -394,6 +399,7 @@ void checkFramebuffer() {
 
 void bindDepthStencilRenderbuffer(const gfx::Renderbuffer<gfx::RenderbufferPixelType::DepthStencil>& depthStencil) {
     MLB_TRACE_FUNC();
+    MLB_TRACE_FUNC_GL();
 
     auto& depthStencilResource = depthStencil.getResource<gl::RenderbufferResource>();
 #ifdef GL_DEPTH_STENCIL_ATTACHMENT
@@ -509,6 +515,7 @@ void Context::reset() {
 #if MLN_DRAWABLE_RENDERER
 void Context::resetState(gfx::DepthMode depthMode, gfx::ColorMode colorMode) {
     MLB_TRACE_FUNC();
+    MLB_TRACE_FUNC_GL();
 
     // Reset GL state to a known state so the CustomLayer always has a clean slate.
     bindVertexArray = value::BindVertexArray::Default;
@@ -669,6 +676,7 @@ gfx::VertexAttributeArrayPtr Context::createVertexAttributeArray() const {
 
 void Context::clear(std::optional<mbgl::Color> color, std::optional<float> depth, std::optional<int32_t> stencil) {
     MLB_TRACE_FUNC();
+    MLB_TRACE_FUNC_GL();
 
     GLbitfield mask = 0;
 
@@ -768,6 +776,7 @@ std::unique_ptr<gfx::CommandEncoder> Context::createCommandEncoder() {
 
 void Context::finish() {
     MLB_TRACE_FUNC();
+    MLB_TRACE_FUNC_GL();
 
     MBGL_CHECK_ERROR(glFinish());
 }
@@ -780,6 +789,7 @@ std::shared_ptr<gl::Fence> Context::getCurrentFrameFence() const {
 
 void Context::draw(const gfx::DrawMode& drawMode, std::size_t indexOffset, std::size_t indexLength) {
     MLB_TRACE_FUNC();
+    MLB_TRACE_FUNC_GL();
 
     switch (drawMode.type) {
         case gfx::DrawModeType::Points:
@@ -885,6 +895,7 @@ void Context::performCleanup() {
 
 void Context::reduceMemoryUsage() {
     MLB_TRACE_FUNC();
+    MLB_TRACE_FUNC_GL();
 
     performCleanup();
 
@@ -905,6 +916,7 @@ void Context::visualizeDepthBuffer([[maybe_unused]] const float depthRangeSize) 
 
 void Context::clearStencilBuffer(const int32_t bits) {
     MLB_TRACE_FUNC();
+    MLB_TRACE_FUNC_GL();
 
     MBGL_CHECK_ERROR(glClearStencil(bits));
     MBGL_CHECK_ERROR(glClear(GL_STENCIL_BUFFER_BIT));

@@ -1111,6 +1111,8 @@ if(MLN_WITH_OPENGL)
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/texture.hpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/texture_resource.cpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/texture_resource.hpp
+            ${PROJECT_SOURCE_DIR}/src/mbgl/gl/timestamp_query_extension.cpp
+            ${PROJECT_SOURCE_DIR}/src/mbgl/gl/timestamp_query_extension.hpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/types.hpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/uniform.cpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/uniform.hpp
