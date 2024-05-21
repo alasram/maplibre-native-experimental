@@ -317,12 +317,33 @@ std::unique_ptr<gfx::TextureResource> Context::createTextureResource(const Size 
     return resource;
 }
 
+constexpr size_t renderBufferByteSize(const gfx::RenderbufferPixelType type, const Size size) noexcept {
+    size_t sz = size.width * size.height;
+    switch (type) {
+        case gfx::RenderbufferPixelType::RGBA:
+            [[fallthrough]];
+        case gfx::RenderbufferPixelType::DepthStencil:
+            sz *= 4;
+            break;
+        case gfx::RenderbufferPixelType::Depth:
+            sz *= 2;
+            break;
+    }
+    return sz;
+}
+
 std::unique_ptr<gfx::RenderbufferResource> Context::createRenderbufferResource(const gfx::RenderbufferPixelType type,
                                                                                const Size size) {
     MLB_TRACE_FUNC();
 
+    auto byteSize = renderBufferByteSize(type, size);
+    if (byteSize >= 1024 * 1024 * 1024) {
+        Log::Warning(Event::General, "Creating render target of size " + std::to_string(byteSize));
+    }
+
     RenderbufferID id = 0;
     MBGL_CHECK_ERROR(glGenRenderbuffers(1, &id));
+    MLB_TRACE_ALLOC_RT(id, byteSize);
     // NOLINTNEXTLINE(performance-move-const-arg)
     UniqueRenderbuffer renderbuffer{std::move(id), {this}};
 
@@ -330,6 +351,7 @@ std::unique_ptr<gfx::RenderbufferResource> Context::createRenderbufferResource(c
     MBGL_CHECK_ERROR(
         glRenderbufferStorage(GL_RENDERBUFFER, Enum<gfx::RenderbufferPixelType>::to(type), size.width, size.height));
     bindRenderbuffer = 0;
+
     return std::make_unique<gl::RenderbufferResource>(std::move(renderbuffer));
 }
 

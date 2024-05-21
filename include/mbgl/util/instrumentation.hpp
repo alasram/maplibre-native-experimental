@@ -47,6 +47,10 @@ constexpr const char* tracyTextureMemoryLabel = "Texture Memory";
 #define MLB_TRACE_ALLOC_TEXTURE(id, size) TracyAllocN(reinterpret_cast<const void*>(id), size, tracyTextureMemoryLabel)
 #define MLB_TRACE_FREE_TEXTURE(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyTextureMemoryLabel)
 
+constexpr const char* tracyRenderTargetMemoryLabel = "Render Target Memory";
+#define MLB_TRACE_ALLOC_RT(id, size) TracyAllocN(reinterpret_cast<const void*>(id), size, tracyRenderTargetMemoryLabel)
+#define MLB_TRACE_FREE_RT(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyRenderTargetMemoryLabel)
+
 constexpr const char* tracyVertexMemoryLabel = "Vertex Buffer Memory";
 #define MLB_TRACE_ALLOC_VERTEX_BUFFER(id, size) \
     TracyAllocN(reinterpret_cast<const void*>(id), size, tracyVertexMemoryLabel)
@@ -71,6 +75,8 @@ constexpr const char* tracyConstMemoryLabel = "Constant Buffer Memory";
 #define MLB_TRACE_FUNC_WITH_GL() ZoneScoped
 #define MLB_TRACE_ALLOC_TEXTURE(id, size)
 #define MLB_TRACE_FREE_TEXTURE(id)
+#define MLB_TRACE_ALLOC_RT(id, size)
+#define MLB_TRACE_FREE_RT(id)
 #define MLB_TRACE_ALLOC_VERTEX_BUFFER(id, size)
 #define MLB_TRACE_FREE_VERTEX_BUFFER(id)
 #define MLB_TRACE_ALLOC_INDEX_BUFFER(id, size)
