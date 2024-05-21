@@ -43,6 +43,14 @@
 #undef glGetQueryObjectui64v
 #undef GLint
 
+constexpr const char* tracyTextureMemoryLabel = "Texture Memory";
+#define MLB_TRACE_ALLOC_TEXTURE(id, size) TracyAllocN(reinterpret_cast<const void*>(id), size, tracyTextureMemoryLabel)
+#define MLB_TRACE_FREE_TEXTURE(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyTextureMemoryLabel)
+
+constexpr const char* tracyBufferMemoryLabel = "Buffer Memory";
+#define MLB_TRACE_ALLOC_BUFFER(id, size) TracyAllocN(reinterpret_cast<const void*>(id), size, tracyBufferMemoryLabel)
+#define MLB_TRACE_FREE_BUFFER(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyBufferMemoryLabel)
+
 #else // MLN_RENDER_BACKEND_OPENGL
 
 #define MLB_TRACE_GL_CONTEXT()
@@ -50,6 +58,10 @@
 #define MLB_TRACE_FUNC_GL()
 #define MLB_END_FRAME() FrameMark
 #define MLB_TRACE_FUNC_WITH_GL() ZoneScoped
+#define MLB_TRACE_ALLOC_TEXTURE(id, size)
+#define MLB_TRACE_FREE_TEXTURE(id)
+#define MLB_TRACE_ALLOC_BUFFER(id, size)
+#define MLB_TRACE_FREE_BUFFER(id)
 
 #endif // MLN_RENDER_BACKEND_OPENGL
 
