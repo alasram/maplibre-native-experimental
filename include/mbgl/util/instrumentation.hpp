@@ -47,9 +47,20 @@ constexpr const char* tracyTextureMemoryLabel = "Texture Memory";
 #define MLB_TRACE_ALLOC_TEXTURE(id, size) TracyAllocN(reinterpret_cast<const void*>(id), size, tracyTextureMemoryLabel)
 #define MLB_TRACE_FREE_TEXTURE(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyTextureMemoryLabel)
 
-constexpr const char* tracyBufferMemoryLabel = "Buffer Memory";
-#define MLB_TRACE_ALLOC_BUFFER(id, size) TracyAllocN(reinterpret_cast<const void*>(id), size, tracyBufferMemoryLabel)
-#define MLB_TRACE_FREE_BUFFER(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyBufferMemoryLabel)
+constexpr const char* tracyVertexMemoryLabel = "Vertex Buffer Memory";
+#define MLB_TRACE_ALLOC_VERTEX_BUFFER(id, size) \
+    TracyAllocN(reinterpret_cast<const void*>(id), size, tracyVertexMemoryLabel)
+#define MLB_TRACE_FREE_VERTEX_BUFFER(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyVertexMemoryLabel)
+
+constexpr const char* tracyIndexMemoryLabel = "Index Buffer Memory";
+#define MLB_TRACE_ALLOC_INDEX_BUFFER(id, size) \
+    TracyAllocN(reinterpret_cast<const void*>(id), size, tracyIndexMemoryLabel)
+#define MLB_TRACE_FREE_INDEX_BUFFER(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyIndexMemoryLabel)
+
+constexpr const char* tracyConstMemoryLabel = "Constant Buffer Memory";
+#define MLB_TRACE_ALLOC_CONST_BUFFER(id, size) \
+    TracyAllocN(reinterpret_cast<const void*>(id), size, tracyConstMemoryLabel)
+#define MLB_TRACE_FREE_CONST_BUFFER(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyConstMemoryLabel)
 
 #else // MLN_RENDER_BACKEND_OPENGL
 
@@ -60,8 +71,12 @@ constexpr const char* tracyBufferMemoryLabel = "Buffer Memory";
 #define MLB_TRACE_FUNC_WITH_GL() ZoneScoped
 #define MLB_TRACE_ALLOC_TEXTURE(id, size)
 #define MLB_TRACE_FREE_TEXTURE(id)
-#define MLB_TRACE_ALLOC_BUFFER(id, size)
-#define MLB_TRACE_FREE_BUFFER(id)
+#define MLB_TRACE_ALLOC_VERTEX_BUFFER(id, size)
+#define MLB_TRACE_FREE_VERTEX_BUFFER(id)
+#define MLB_TRACE_ALLOC_INDEX_BUFFER(id, size)
+#define MLB_TRACE_FREE_INDEX_BUFFER(id)
+#define MLB_TRACE_ALLOC_CONST_BUFFER(id, size)
+#define MLB_TRACE_FREE_CONST_BUFFER(id)
 
 #endif // MLN_RENDER_BACKEND_OPENGL
 
