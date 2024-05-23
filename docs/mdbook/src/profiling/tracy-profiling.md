@@ -9,7 +9,7 @@ Instrumentation is generally the first step in profiling applications that use M
 
 #### Tracy client
 
-Tracy client consists in an API to mark CPU and GPU performance zones. A zone is a code section where the start and end timestamps are recorded.
+Tracy client consists of an API to mark CPU and GPU performance zones. A zone is a code section where the start and end timestamps are recorded.
 
 #### Tracy server
 
@@ -19,14 +19,14 @@ The server can be downloaded from [Tracy release page](https://github.com/wolfpl
 #### Enabling instrumentation in MapLibre Native
 
 Instrumentation is enabled by turning `ON` the CMake option `MLN_USE_TRACY`.
-Tracy computational overhead is very low but by default it keeps all instrumentation events that are not consumed by the server in system memory. This can have a negative effect on platforms with low memory. To prevent high memory usage `TRACY_ON_DEMAND` macro should defined which stores instrumentation data only when the server is connected to the application.
+Tracy computational overhead is very low but by default it keeps all instrumentation events that are not consumed by the server in system memory. This can have a negative effect on platforms with low memory. To prevent high memory usage, `TRACY_ON_DEMAND` macro should defined. This way instrumentation data is only stored when the server is connected to the application.
 
 #### Instrumentation in MapLibre
 
 The file `include/mbgl/util/instrumentation.hpp` defines the following instrumentation macros:
 
-##### MLN_TRACE_ZONE(label)
-The macro records the timestamps at the start and end of the code scope. the parameter label is a user defined name for the zone. Example:
+##### `MLN_TRACE_ZONE(label)`
+The macro records the timestamps at the start and end of the code scope. The parameter label is a user defined name for the zone. Example:
 
 ~~~
 // code is not instrumented
@@ -37,7 +37,7 @@ The macro records the timestamps at the start and end of the code scope. the par
 // other here not instrumented
 ~~~
 
-##### MLN_TRACE_FUNC()
+##### `MLN_TRACE_FUNC()`
 The macro is meant to be placed at the start of a function and expands to:
 ~~~
 MLN_TRACE_ZONE(__FUNCTION__)
@@ -47,10 +47,10 @@ MLN_TRACE_ZONE(__FUNCTION__)
 
 OpenGL is also supported in MapLibre native. Tracy support is currently missing for other APIs such as Metal and need to be added separately.
 
-##### MLN_TRACE_GL_ZONE(label)
+##### `MLN_TRACE_GL_ZONE(label)`
 This macro is similar to `MLN_TRACE_ZONE` except that [OpenGL timestamp queries](https://www.khronos.org/opengl/wiki/Query_Object) are inserted in the GPU command buffer instead of recording CPU time.
 
-##### MLN_TRACE_FUNC_GL(label)
+##### `MLN_TRACE_FUNC_GL(label)`
 This macro is similar to `MLN_TRACE_FUNC` except that [OpenGL timestamp queries](https://www.khronos.org/opengl/wiki/Query_Object) are inserted in the GPU command buffer instead of recording CPU time.
 
 ##### Other macros
@@ -59,25 +59,25 @@ The above macros can be added inside MapLibre code and also in the application c
 
 The following macros should only be used if there are changes to MapLibre internals:
 
-##### MLN_END_FRAME()
+##### `MLN_END_FRAME()`
 Mark the end of a frame.
 
-##### MLN_TRACE_GL_CONTEXT()
+##### `MLN_TRACE_GL_CONTEXT()`
 Placed after an OpenGL context is created.
 
-##### MLN_TRACE_ALLOC_TEXTURE(id, size) and MLN_TRACE_FREE_TEXTURE(id)
+##### `MLN_TRACE_ALLOC_TEXTURE(id, size)` and `MLN_TRACE_FREE_TEXTURE(id)`
 Record a read-only texture allocation and deallocation
 
-##### MLN_TRACE_ALLOC_RT(id, size) and MLN_TRACE_FREE_RT(id)
+##### `MLN_TRACE_ALLOC_RT(id, size)` and `MLN_TRACE_FREE_RT(id)`
 Record a render target texture allocation and deallocation
 
-##### MLN_TRACE_ALLOC_VERTEX_BUFFER(id, size) and MLN_TRACE_FREE_VERTEX_BUFFER(id)
+##### `MLN_TRACE_ALLOC_VERTEX_BUFFER(id, size)` and `MLN_TRACE_FREE_VERTEX_BUFFER(id)`
 Record a buffer allocation and deallocation that is intended to be used as a read-only vertex buffer
 
-##### MLN_TRACE_ALLOC_INDEX_BUFFER(id, size) and MLN_TRACE_FREE_INDEX_BUFFER(id)
+##### `MLN_TRACE_ALLOC_INDEX_BUFFER(id, size)` and `MLN_TRACE_FREE_INDEX_BUFFER(id)`
 Record a buffer allocation and deallocation that is intended to be used as a read-only index buffer
 
-##### MLN_TRACE_ALLOC_CONST_BUFFER(id, size) and MLN_TRACE_FREE_CONST_BUFFER(id)
+##### `MLN_TRACE_ALLOC_CONST_BUFFER(id, size)` and `MLN_TRACE_FREE_CONST_BUFFER(id)`
 Record a buffer allocation and deallocation that is intended to be used as a constant buffer
 
 
