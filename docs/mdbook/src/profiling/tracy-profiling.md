@@ -2,7 +2,7 @@
 
 #### Introduction
 
-MabLibre Native integrates [Tracy profiler](https://github.com/wolfpld/tracy) which offers an easy way to understand and optimize your application's CPU and GPU performance.
+MapLibre Native integrates [Tracy profiler](https://github.com/wolfpld/tracy) which offers an easy way to understand and optimize your application's CPU and GPU performance.
 Tracy mainly consists in manually adding markup instrumentation in the code to log performance events. These events can then be analyzed and visualized using the [Tracy Profiler tool](https://github.com/wolfpld/tracy/tree/master/profiler).
 
 Instrumentation is generally the first step in profiling applications that use MapLibre. Once slow inner-loop routines are identified, additional hardware vendor specific tools can be used to collect hardware counters and optimize low level CPU and GPU code.
@@ -13,10 +13,10 @@ Tracy client consists in an API to mark CPU and GPU performance zones. A zone is
 
 #### Tracy server
 
-The server is the Tracy prfiler that allows the analysis and visualization of the client recorded data.
+The server is the Tracy profiler that allows the analysis and visualization of the client recorded data.
 The server can be downloaded from [Tracy release page](https://github.com/wolfpld/tracy/releases) or it can be easily built from [sources](https://github.com/wolfpld/tracy/tree/master/profiler) on Linux, Windows or Mac using CMake
 
-#### Enabling instrumentation in MaLibre Native
+#### Enabling instrumentation in MapLibre Native
 
 Instrumentation is enabled by turning `ON` the CMake option `MLN_USE_TRACY`.
 Tracy computational overhead is very low but by default it keeps all instrumentation events that are not consumed by the server in system memory. This can have a negative effect on platforms with low memory. To prevent high memory usage `TRACY_ON_DEMAND` macro should defined which stores instrumentation data only when the server is connected to the application.
