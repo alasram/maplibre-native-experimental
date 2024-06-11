@@ -476,14 +476,21 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
        * Before we can issue GL commands, we need to make sure
        * the context is current and bound to a surface.
        */
+      int t1 = (int) (System.currentTimeMillis());
       if (!mEgl.eglMakeCurrent(mEglDisplay, mEglSurface, mEglSurface, mEglContext)) {
         /*
          * Could not make the context current, probably because the underlying
          * SurfaceView surface has been destroyed.
          */
         logEglErrorAsWarning(TAG, "eglMakeCurrent", mEgl.eglGetError());
+
+        int t2 = (int) (System.currentTimeMillis());
+        Log.e("NS_DBG", "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ eglMakeCurrent " + (t2-t1));
+
         return false;
       }
+      int t2 = (int) (System.currentTimeMillis());
+      Log.e("NS_DBG", "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ eglMakeCurrent " + (t2-t1));
 
       return true;
     }
@@ -512,6 +519,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     private void destroySurfaceImp() {
+      int t1 = (int) (System.currentTimeMillis());
       if (mEglSurface != null && mEglSurface != EGL10.EGL_NO_SURFACE) {
         mEgl.eglMakeCurrent(mEglDisplay, EGL10.EGL_NO_SURFACE,
           EGL10.EGL_NO_SURFACE,
@@ -522,6 +530,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
         }
         mEglSurface = null;
       }
+      int t2 = (int) (System.currentTimeMillis());
+      Log.e("NS_DBG", "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ eglMakeCurrent " + (t2-t1));
     }
 
     public void finish() {

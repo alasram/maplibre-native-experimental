@@ -75,7 +75,11 @@ void Renderer::Impl::setObserver(RendererObserver* observer_) {
 void Renderer::Impl::render(const RenderTree& renderTree,
                             [[maybe_unused]] const std::shared_ptr<UpdateParameters>& updateParameters) {
     MLN_TRACE_FUNC();
+
+    auto render_start_ts = std::chrono::steady_clock::now();
+
     auto& context = backend.getContext();
+
 #if MLN_RENDER_BACKEND_METAL
     if constexpr (EnableMetalCapture) {
         const auto& mtlBackend = static_cast<mtl::RendererBackend&>(backend);
@@ -542,6 +546,23 @@ void Renderer::Impl::render(const RenderTree& renderTree,
 
     frameCount += 1;
     MLN_END_FRAME();
+
+    static int fps_counter = 0;
+    static auto ref_timestamp = std::chrono::steady_clock::now();
+    auto current_timestamp = std::chrono::steady_clock::now();
+    const std::chrono::duration<double> diff = current_timestamp - ref_timestamp;
+    ++fps_counter;
+
+    const std::chrono::duration<double> render_func_time = current_timestamp - render_start_ts;
+
+    if (diff.count() > 1) {
+        double fps = fps_counter / diff.count();
+        ref_timestamp = current_timestamp;
+        fps_counter = 0;
+        auto msg = "################################################## FPS : " + std::to_string(fps) +
+                   " last func time: " + std::to_string(100 * render_func_time.count());
+        Log::Error(Event::Render, msg.c_str());
+    }
 }
 
 void Renderer::Impl::reduceMemoryUse() {

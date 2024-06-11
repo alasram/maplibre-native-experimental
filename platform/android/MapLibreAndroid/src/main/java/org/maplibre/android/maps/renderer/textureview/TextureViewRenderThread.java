@@ -443,12 +443,17 @@ class TextureViewRenderThread extends Thread implements TextureView.SurfaceTextu
     }
 
     boolean makeCurrent() {
+      int t1 = (int) (System.currentTimeMillis());
       if (!egl.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
         // Could not make the context current, probably because the underlying
         // SurfaceView surface has been destroyed.
         Logger.w(TAG, String.format("eglMakeCurrent: %s", egl.eglGetError()));
+        int t2 = (int) (System.currentTimeMillis());
+        Logger.e("NS_DBG", "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ eglMakeCurrent " + (t2-t1));
         return false;
       }
+      int t2 = (int) (System.currentTimeMillis());
+      Logger.e("NS_DBG", "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ eglMakeCurrent " + (t2-t1));
 
       return true;
     }

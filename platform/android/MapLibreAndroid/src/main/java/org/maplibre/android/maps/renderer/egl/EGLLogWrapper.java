@@ -14,6 +14,8 @@ import javax.microedition.khronos.egl.EGLContext;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.egl.EGLSurface;
 
+import android.util.Log;
+
 public class EGLLogWrapper implements EGL11 {
   private EGL10 egl10;
   private Writer log;
@@ -252,7 +254,10 @@ public class EGLLogWrapper implements EGL11 {
     arg("read", read);
     arg("context", context);
     end();
+    int t1 = (int) (System.currentTimeMillis());
     boolean result = egl10.eglMakeCurrent(display, draw, read, context);
+    int t2 = (int) (System.currentTimeMillis());
+    Log.e("NS_DBG", "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ eglMakeCurrent " + (t2-t1));
     returns(result);
     checkError();
     return result;

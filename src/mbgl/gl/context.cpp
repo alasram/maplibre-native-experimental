@@ -115,6 +115,8 @@ Context::~Context() noexcept {
 void Context::beginFrame() {
     MLN_TRACE_FUNC();
 
+    glFinish();
+
     Scheduler::GetBackground()->runRenderJobs();
 
 #if MLN_DRAWABLE_RENDERER
@@ -134,6 +136,8 @@ void Context::beginFrame() {
 
 void Context::endFrame() {
     MLN_TRACE_FUNC();
+
+    glFinish();
 
 #if MLN_DRAWABLE_RENDERER
     if (!frameInFlightFence) {
