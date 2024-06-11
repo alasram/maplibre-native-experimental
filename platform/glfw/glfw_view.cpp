@@ -1021,7 +1021,7 @@ void GLFWView::run() {
         MLN_TRACE_ZONE(GLFWView_runLoop_callback);
 
         {
-            MLN_TRACE_ZONE(glfwWindowShouldClose);
+            MLN_TRACE_ZONE(tracy_glfwWindowShouldClose);
             if (glfwWindowShouldClose(window)) {
                 runLoop.stop();
                 return;

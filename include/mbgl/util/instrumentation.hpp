@@ -10,34 +10,26 @@
 #endif
 
 #define MLN_TRACE_FUNC() ZoneScoped
-#define MLN_TRACE_ZONE(label) ZoneScopedN(#label)
+#define MLN_TRACE_ZONE(label) // ZoneScopedN(#label)
 
-constexpr const char* tracyTextureMemoryLabel = "Texture Memory";
-#define MLN_TRACE_ALLOC_TEXTURE(id, size) TracyAllocN(reinterpret_cast<const void*>(id), size, tracyTextureMemoryLabel)
-#define MLN_TRACE_FREE_TEXTURE(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyTextureMemoryLabel)
+#define MLN_TRACE_ALLOC_TEXTURE(id, size)
+#define MLN_TRACE_FREE_TEXTURE(id)
 
-constexpr const char* tracyRenderTargetMemoryLabel = "Render Target Memory";
-#define MLN_TRACE_ALLOC_RT(id, size) TracyAllocN(reinterpret_cast<const void*>(id), size, tracyRenderTargetMemoryLabel)
-#define MLN_TRACE_FREE_RT(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyRenderTargetMemoryLabel)
+#define MLN_TRACE_ALLOC_RT(id, size)
+#define MLN_TRACE_FREE_RT(id)
 
-constexpr const char* tracyVertexMemoryLabel = "Vertex Buffer Memory";
-#define MLN_TRACE_ALLOC_VERTEX_BUFFER(id, size) \
-    TracyAllocN(reinterpret_cast<const void*>(id), size, tracyVertexMemoryLabel)
-#define MLN_TRACE_FREE_VERTEX_BUFFER(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyVertexMemoryLabel)
+#define MLN_TRACE_ALLOC_VERTEX_BUFFER(id, size)
+#define MLN_TRACE_FREE_VERTEX_BUFFER(id)
 
-constexpr const char* tracyIndexMemoryLabel = "Index Buffer Memory";
-#define MLN_TRACE_ALLOC_INDEX_BUFFER(id, size) \
-    TracyAllocN(reinterpret_cast<const void*>(id), size, tracyIndexMemoryLabel)
-#define MLN_TRACE_FREE_INDEX_BUFFER(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyIndexMemoryLabel)
+#define MLN_TRACE_ALLOC_INDEX_BUFFER(id, size)
+#define MLN_TRACE_FREE_INDEX_BUFFER(id)
 
-constexpr const char* tracyConstMemoryLabel = "Constant Buffer Memory";
-#define MLN_TRACE_ALLOC_CONST_BUFFER(id, size) \
-    TracyAllocN(reinterpret_cast<const void*>(id), size, tracyConstMemoryLabel)
-#define MLN_TRACE_FREE_CONST_BUFFER(id) TracyFreeN(reinterpret_cast<const void*>(id), tracyConstMemoryLabel)
+#define MLN_TRACE_ALLOC_CONST_BUFFER(id, size)
+#define MLN_TRACE_FREE_CONST_BUFFER(id)
 
 // Only OpenGL is currently considered for GPU profiling
 // Metal and other APIs need to be handled separately
-#if MLN_RENDER_BACKEND_OPENGL
+#if MLN_RENDER_BACKEND_OPENGL && 0
 
 #include <mbgl/gl/timestamp_query_extension.hpp>
 

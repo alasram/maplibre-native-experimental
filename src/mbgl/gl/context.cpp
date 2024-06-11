@@ -74,7 +74,7 @@ GLint getMaxVertexAttribs() {
 }
 
 // Currently renderBufferByteSize is only used when Tracy profiling is enabled
-#ifdef MLN_TRACY_ENABLE
+#ifdef MLN_TRACY_ENABLE__
 constexpr size_t renderBufferByteSize(const gfx::RenderbufferPixelType type, const Size size) noexcept {
     size_t sz = size.width * size.height;
     switch (type) {
