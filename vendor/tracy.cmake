@@ -1,7 +1,7 @@
-if (MLN_USE_TRACY)
+# if (MLN_USE_TRACY)
     add_definitions(-DTRACY_ENABLE)
     add_definitions(-DMLN_TRACY_ENABLE)
-endif()
+# endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/tracy)
 

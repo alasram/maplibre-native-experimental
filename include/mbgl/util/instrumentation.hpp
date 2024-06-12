@@ -10,7 +10,7 @@
 #endif
 
 #define MLN_TRACE_FUNC() ZoneScoped
-#define MLN_TRACE_ZONE(label) // ZoneScopedN(#label)
+#define MLN_TRACE_ZONE(label) ZoneScopedN(#label)
 
 #define MLN_TRACE_ALLOC_TEXTURE(id, size)
 #define MLN_TRACE_FREE_TEXTURE(id)

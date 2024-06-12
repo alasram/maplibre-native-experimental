@@ -13,6 +13,7 @@
 
 #include <jni/jni.hpp>
 #include "attach_env.hpp"
+#include <mbgl/util/instrumentation.hpp>
 
 namespace mbgl {
 
@@ -91,6 +92,7 @@ void RegisterNativeHTTPRequest(jni::JNIEnv& env) {
 HTTPRequest::HTTPRequest(jni::JNIEnv& env, const Resource& resource_, FileSource::Callback callback_)
     : resource(resource_),
       callback(callback_) {
+    MLN_TRACE_FUNC();
     std::string etagStr;
     std::string modifiedStr;
 
@@ -117,6 +119,7 @@ HTTPRequest::HTTPRequest(jni::JNIEnv& env, const Resource& resource_, FileSource
 }
 
 HTTPRequest::~HTTPRequest() {
+    MLN_TRACE_FUNC();
     android::UniqueEnv env = android::AttachEnv();
 
     static auto& javaClass = jni::Class<HTTPRequest>::Singleton(*env);
@@ -134,6 +137,7 @@ void HTTPRequest::onResponse(jni::JNIEnv& env,
                              const jni::String& jRetryAfter,
                              const jni::String& jXRateLimitReset,
                              const jni::Array<jni::jbyte>& body) {
+    MLN_TRACE_FUNC();
     using Error = Response::Error;
 
     if (etag) {
@@ -191,6 +195,7 @@ void HTTPRequest::onResponse(jni::JNIEnv& env,
 }
 
 void HTTPRequest::onFailure(jni::JNIEnv& env, int type, const jni::String& message) {
+    MLN_TRACE_FUNC();
     std::string messageStr = jni::Make<std::string>(env, message);
 
     using Error = Response::Error;
@@ -215,22 +220,27 @@ HTTPFileSource::HTTPFileSource(const ResourceOptions& resourceOptions, const Cli
 HTTPFileSource::~HTTPFileSource() = default;
 
 std::unique_ptr<AsyncRequest> HTTPFileSource::request(const Resource& resource, Callback callback) {
+    MLN_TRACE_FUNC();
     return std::make_unique<HTTPRequest>(*impl->env, resource, callback);
 }
 
 void HTTPFileSource::setResourceOptions(ResourceOptions options) {
+    MLN_TRACE_FUNC();
     impl->setResourceOptions(options.clone());
 }
 
 ResourceOptions HTTPFileSource::getResourceOptions() {
+    MLN_TRACE_FUNC();
     return impl->getResourceOptions();
 }
 
 void HTTPFileSource::setClientOptions(ClientOptions options) {
+    MLN_TRACE_FUNC();
     impl->setClientOptions(options.clone());
 }
 
 ClientOptions HTTPFileSource::getClientOptions() {
+    MLN_TRACE_FUNC();
     return impl->getClientOptions();
 }
 

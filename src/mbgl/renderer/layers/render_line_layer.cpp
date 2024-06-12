@@ -20,6 +20,7 @@
 #include <mbgl/util/intersection_tests.hpp>
 #include <mbgl/util/logging.hpp>
 #include <mbgl/util/math.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #if MLN_DRAWABLE_RENDERER
 #include <mbgl/gfx/drawable_atlases_tweaker.hpp>
@@ -361,6 +362,8 @@ void RenderLineLayer::update(gfx::ShaderRegistry& shaders,
                              [[maybe_unused]] const std::shared_ptr<UpdateParameters>& parameters,
                              [[maybe_unused]] const RenderTree& renderTree,
                              [[maybe_unused]] UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
+
     if (!renderTiles || renderTiles->empty()) {
         removeAllDrawables();
         return;

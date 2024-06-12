@@ -8,6 +8,8 @@
 
 #include <sstream>
 
+#include <mbgl/util/instrumentation.hpp>
+
 namespace mbgl {
 
 namespace {
@@ -44,6 +46,8 @@ bool ImageManager::isLoaded() const {
 }
 
 void ImageManager::addImage(Immutable<style::Image::Impl> image_) {
+    MLN_TRACE_FUNC();
+
     std::lock_guard<std::recursive_mutex> readLock(rwLock);
     assert(images.find(image_->id) == images.end());
 
@@ -57,6 +61,8 @@ void ImageManager::addImage(Immutable<style::Image::Impl> image_) {
 }
 
 bool ImageManager::updateImage(Immutable<style::Image::Impl> image_) {
+    MLN_TRACE_FUNC();
+
     std::lock_guard<std::recursive_mutex> readWriteLock(rwLock);
 
     auto oldImage = images.find(image_->id);
@@ -83,6 +89,8 @@ bool ImageManager::updateImage(Immutable<style::Image::Impl> image_) {
 }
 
 void ImageManager::removeImage(const std::string& id) {
+    MLN_TRACE_FUNC();
+
     std::lock_guard<std::recursive_mutex> readWriteLock(rwLock);
     auto it = images.find(id);
     assert(it != images.end());
@@ -101,6 +109,8 @@ void ImageManager::removeImage(const std::string& id) {
 }
 
 const style::Image::Impl* ImageManager::getImage(const std::string& id) const {
+    MLN_TRACE_FUNC();
+
     std::lock_guard<std::recursive_mutex> readWriteLock(rwLock);
     if (auto* image = getSharedImage(id)) {
         return image->get();
@@ -109,6 +119,8 @@ const style::Image::Impl* ImageManager::getImage(const std::string& id) const {
 }
 
 const Immutable<style::Image::Impl>* ImageManager::getSharedImage(const std::string& id) const {
+    MLN_TRACE_FUNC();
+
     std::lock_guard<std::recursive_mutex> readWriteLock(rwLock);
     const auto it = images.find(id);
     if (it != images.end()) {
@@ -118,6 +130,8 @@ const Immutable<style::Image::Impl>* ImageManager::getSharedImage(const std::str
 }
 
 void ImageManager::getImages(ImageRequestor& requestor, ImageRequestPair&& pair) {
+    MLN_TRACE_FUNC();
+
     // remove previous requests from this tile
     removeRequestor(requestor);
 
@@ -149,6 +163,8 @@ void ImageManager::getImages(ImageRequestor& requestor, ImageRequestPair&& pair)
 }
 
 void ImageManager::removeRequestor(ImageRequestor& requestor) {
+    MLN_TRACE_FUNC();
+
     std::lock_guard<std::recursive_mutex> readWriteLock(rwLock);
 
     requestors.erase(&requestor);
@@ -159,6 +175,8 @@ void ImageManager::removeRequestor(ImageRequestor& requestor) {
 }
 
 void ImageManager::notifyIfMissingImageAdded() {
+    MLN_TRACE_FUNC();
+
     std::lock_guard<std::recursive_mutex> readWriteLock(rwLock);
 
     for (auto it = missingImageRequestors.begin(); it != missingImageRequestors.end();) {
@@ -173,6 +191,8 @@ void ImageManager::notifyIfMissingImageAdded() {
 }
 
 void ImageManager::reduceMemoryUse() {
+    MLN_TRACE_FUNC();
+
     std::lock_guard<std::recursive_mutex> readLock(rwLock);
 
     std::vector<std::string> unusedIDs;
@@ -196,15 +216,20 @@ void ImageManager::reduceMemoryUseIfCacheSizeExceedsLimit() {
 }
 
 std::set<std::string> ImageManager::getAvailableImages() const {
+    MLN_TRACE_FUNC();
+
     std::set<std::string> copy;
     {
         std::lock_guard<std::recursive_mutex> readWriteLock(rwLock);
+        MLN_TRACE_ZONE(copy_availableImages);
         copy = availableImages;
     }
     return copy;
 }
 
 void ImageManager::clear() {
+    MLN_TRACE_FUNC();
+
     std::lock_guard<std::recursive_mutex> readWriteLock(rwLock);
 
     assert(requestors.empty());
@@ -218,6 +243,8 @@ void ImageManager::clear() {
 }
 
 void ImageManager::checkMissingAndNotify(ImageRequestor& requestor, const ImageRequestPair& pair) {
+    MLN_TRACE_FUNC();
+
     ImageDependencies missingDependencies;
 
     for (const auto& dependency : pair.first) {
@@ -283,6 +310,8 @@ void ImageManager::checkMissingAndNotify(ImageRequestor& requestor, const ImageR
 }
 
 void ImageManager::notify(ImageRequestor& requestor, const ImageRequestPair& pair) const {
+    MLN_TRACE_FUNC();
+
     ImageMap iconMap;
     ImageMap patternMap;
     ImageVersionMap versionMap;
@@ -307,6 +336,8 @@ void ImageManager::notify(ImageRequestor& requestor, const ImageRequestPair& pai
 }
 
 void ImageManager::dumpDebugLogs() const {
+    MLN_TRACE_FUNC();
+
     std::ostringstream ss;
     ss << "ImageManager::loaded: " << loaded;
     Log::Info(Event::General, ss.str());
@@ -316,6 +347,8 @@ ImageRequestor::ImageRequestor(std::shared_ptr<ImageManager> imageManager_)
     : imageManager(std::move(imageManager_)) {}
 
 ImageRequestor::~ImageRequestor() {
+    MLN_TRACE_FUNC();
+
     imageManager->removeRequestor(*this);
 }
 

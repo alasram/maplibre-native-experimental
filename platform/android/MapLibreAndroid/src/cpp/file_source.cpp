@@ -14,6 +14,7 @@
 #include <mbgl/storage/sqlite3.hpp>
 
 #include "asset_manager_file_source.hpp"
+#include <mbgl/util/instrumentation.hpp>
 
 namespace mbgl {
 namespace android {
@@ -25,6 +26,7 @@ FileSource::FileSource(jni::JNIEnv& _env,
                        const jni::String& _cachePath,
                        const jni::Object<TileServerOptions>& _options)
     : activationCounter(std::optional<int>(1)) {
+    MLN_TRACE_FUNC();
     std::string path = jni::Make<std::string>(_env, _cachePath);
     mapbox::sqlite::setTempPath(path);
 
@@ -59,6 +61,7 @@ FileSource::FileSource(jni::JNIEnv& _env,
 FileSource::~FileSource() {}
 
 void FileSource::setTileServerOptions(jni::JNIEnv& _env, const jni::Object<TileServerOptions>& _options) {
+    MLN_TRACE_FUNC();
     auto tileServerOptions = TileServerOptions::getTileServerOptions(_env, _options);
     resourceOptions.withTileServerOptions(tileServerOptions);
     resourceLoader->setResourceOptions(resourceOptions.clone());
@@ -67,6 +70,7 @@ void FileSource::setTileServerOptions(jni::JNIEnv& _env, const jni::Object<TileS
 }
 
 jni::Local<jni::String> FileSource::getApiKey(jni::JNIEnv& env) {
+    MLN_TRACE_FUNC();
     if (auto* token = onlineSource->getProperty(mbgl::API_KEY_KEY).getString()) {
         return jni::Make<jni::String>(env, *token);
     }
@@ -76,6 +80,7 @@ jni::Local<jni::String> FileSource::getApiKey(jni::JNIEnv& env) {
 }
 
 void FileSource::setApiKey(jni::JNIEnv& env, const jni::String& token) {
+    MLN_TRACE_FUNC();
     if (onlineSource) {
         onlineSource->setProperty(mbgl::API_KEY_KEY, token ? jni::Make<std::string>(env, token) : "");
     } else {
@@ -84,6 +89,7 @@ void FileSource::setApiKey(jni::JNIEnv& env, const jni::String& token) {
 }
 
 void FileSource::setAPIBaseUrl(jni::JNIEnv& env, const jni::String& url) {
+    MLN_TRACE_FUNC();
     if (onlineSource) {
         onlineSource->setProperty(mbgl::API_BASE_URL_KEY, jni::Make<std::string>(env, url));
     } else {
@@ -92,6 +98,7 @@ void FileSource::setAPIBaseUrl(jni::JNIEnv& env, const jni::String& url) {
 }
 
 jni::Local<jni::String> FileSource::getAPIBaseUrl(jni::JNIEnv& env) {
+    MLN_TRACE_FUNC();
     if (auto* url = onlineSource->getProperty(mbgl::API_BASE_URL_KEY).getString()) {
         return jni::Make<jni::String>(env, std::string(*url));
     }
@@ -102,6 +109,7 @@ jni::Local<jni::String> FileSource::getAPIBaseUrl(jni::JNIEnv& env) {
 
 void FileSource::setResourceTransform(jni::JNIEnv& env,
                                       const jni::Object<FileSource::ResourceTransformCallback>& transformCallback) {
+    MLN_TRACE_FUNC();
     // Core could be built without support for network resource provider.
     if (!onlineSource) {
         ThrowNew(env, jni::FindClass(env, "java/lang/IllegalStateException"), "Online functionality is disabled.");
@@ -138,6 +146,7 @@ void FileSource::setResourceTransform(jni::JNIEnv& env,
 void FileSource::setResourceCachePath(jni::JNIEnv& env,
                                       const jni::String& path,
                                       const jni::Object<FileSource::ResourcesCachePathChangeCallback>& _callback) {
+    MLN_TRACE_FUNC();
     if (!databaseSource) {
         ThrowNew(env, jni::FindClass(env, "java/lang/IllegalStateException"), "Offline functionality is disabled.");
         return;
@@ -165,6 +174,7 @@ void FileSource::setResourceCachePath(jni::JNIEnv& env,
 }
 
 void FileSource::resume(jni::JNIEnv&) {
+    MLN_TRACE_FUNC();
     if (!resourceLoader) {
         return;
     }
@@ -176,6 +186,7 @@ void FileSource::resume(jni::JNIEnv&) {
 }
 
 void FileSource::pause(jni::JNIEnv&) {
+    MLN_TRACE_FUNC();
     if (!resourceLoader) {
         return;
     }
@@ -187,10 +198,12 @@ void FileSource::pause(jni::JNIEnv&) {
 }
 
 jni::jboolean FileSource::isResumed(jni::JNIEnv&) {
+    MLN_TRACE_FUNC();
     return (jboolean)(activationCounter > 0);
 }
 
 FileSource* FileSource::getNativePeer(jni::JNIEnv& env, const jni::Object<FileSource>& jFileSource) {
+    MLN_TRACE_FUNC();
     static auto& javaClass = jni::Class<FileSource>::Singleton(env);
     static auto field = javaClass.GetField<jlong>(env, "nativePtr");
     return reinterpret_cast<FileSource*>(jFileSource.Get(env, field));
@@ -198,6 +211,7 @@ FileSource* FileSource::getNativePeer(jni::JNIEnv& env, const jni::Object<FileSo
 
 mbgl::ResourceOptions FileSource::getSharedResourceOptions(jni::JNIEnv& env,
                                                            const jni::Object<FileSource>& jFileSource) {
+    MLN_TRACE_FUNC();
     FileSource* fileSource = FileSource::getNativePeer(env, jFileSource);
     // Core could be compiled without support for any sources.
     if (fileSource) {
@@ -208,6 +222,7 @@ mbgl::ResourceOptions FileSource::getSharedResourceOptions(jni::JNIEnv& env,
 }
 
 mbgl::ClientOptions FileSource::getSharedClientOptions(jni::JNIEnv& env, const jni::Object<FileSource>& jFileSource) {
+    MLN_TRACE_FUNC();
     FileSource* fileSource = FileSource::getNativePeer(env, jFileSource);
     // Core could be compiled without support for any sources.
     if (fileSource) {
@@ -223,6 +238,7 @@ void FileSource::ResourcesCachePathChangeCallback::onSuccess(
     jni::JNIEnv& env,
     const jni::Object<FileSource::ResourcesCachePathChangeCallback>& callback,
     const jni::String& path) {
+    MLN_TRACE_FUNC();
     static auto& javaClass = jni::Class<FileSource::ResourcesCachePathChangeCallback>::Singleton(env);
     static auto method = javaClass.GetMethod<void(jni::String)>(env, "onSuccess");
 
@@ -240,6 +256,7 @@ void FileSource::ResourcesCachePathChangeCallback::onError(
 }
 
 void FileSource::registerNative(jni::JNIEnv& env) {
+    MLN_TRACE_FUNC();
     // Ensure the classes are cached. If they're requested for the
     // first time on a background thread, Android's class loader heuristics will fail.
     // https://developer.android.com/training/articles/perf-jni#faq_FindClass
@@ -274,6 +291,7 @@ void FileSource::registerNative(jni::JNIEnv& env) {
 
 std::string FileSource::ResourceTransformCallback::onURL(
     jni::JNIEnv& env, const jni::Object<FileSource::ResourceTransformCallback>& callback, int kind, std::string url_) {
+    MLN_TRACE_FUNC();
     static auto& javaClass = jni::Class<FileSource::ResourceTransformCallback>::Singleton(env);
     static auto method = javaClass.GetMethod<jni::String(jni::jint, jni::String)>(env, "onURL");
 

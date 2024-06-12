@@ -8,6 +8,7 @@
 #include <mbgl/util/thread.hpp>
 #include <mbgl/util/url.hpp>
 #include <mbgl/util/util.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
@@ -25,6 +26,7 @@ public:
           assetManager(assetManager_) {}
 
     void request(const std::string& url, ActorRef<FileSourceRequest> req) {
+        MLN_TRACE_FUNC();
         // Note: AssetManager already prepends "assets" to the filename.
         const std::string path = mbgl::util::percentDecode(url.substr(8));
 
@@ -71,6 +73,7 @@ AssetManagerFileSource::AssetManagerFileSource(jni::JNIEnv& env,
 AssetManagerFileSource::~AssetManagerFileSource() = default;
 
 std::unique_ptr<AsyncRequest> AssetManagerFileSource::request(const Resource& resource, Callback callback) {
+    MLN_TRACE_FUNC();
     auto req = std::make_unique<FileSourceRequest>(std::move(callback));
 
     impl->actor().invoke(&Impl::request, resource.url, req->actor());
@@ -79,22 +82,27 @@ std::unique_ptr<AsyncRequest> AssetManagerFileSource::request(const Resource& re
 }
 
 bool AssetManagerFileSource::canRequest(const Resource& resource) const {
+    MLN_TRACE_FUNC();
     return 0 == resource.url.rfind(mbgl::util::ASSET_PROTOCOL, 0);
 }
 
 void AssetManagerFileSource::setResourceOptions(ResourceOptions options) {
+    MLN_TRACE_FUNC();
     impl->actor().invoke(&Impl::setResourceOptions, options.clone());
 }
 
 ResourceOptions AssetManagerFileSource::getResourceOptions() {
+    MLN_TRACE_FUNC();
     return impl->actor().ask(&Impl::getResourceOptions).get();
 }
 
 void AssetManagerFileSource::setClientOptions(ClientOptions options) {
+    MLN_TRACE_FUNC();
     impl->actor().invoke(&Impl::setClientOptions, options.clone());
 }
 
 ClientOptions AssetManagerFileSource::getClientOptions() {
+    MLN_TRACE_FUNC();
     return impl->actor().ask(&Impl::getClientOptions).get();
 }
 

@@ -12,6 +12,7 @@
 #include <mbgl/gfx/render_pass.hpp>
 #include <mbgl/math/angles.hpp>
 #include <mbgl/util/geo.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #if MLN_DRAWABLE_RENDERER
 #include <mbgl/renderer/layers/hillshade_layer_tweaker.hpp>
@@ -306,6 +307,7 @@ void RenderHillshadeLayer::update(gfx::ShaderRegistry& shaders,
                                   const std::shared_ptr<UpdateParameters>&,
                                   [[maybe_unused]] const RenderTree& renderTree,
                                   UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     if (!renderTiles || renderTiles->empty()) {
         removeAllDrawables();
         return;

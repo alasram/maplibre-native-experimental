@@ -72,9 +72,21 @@ void Renderer::Impl::setObserver(RendererObserver* observer_) {
     observer = observer_ ? observer_ : &nullObserver();
 }
 
+bool Renderer::Impl::isIC() const {
+    auto renderWidth = backend.getDefaultRenderable().getSize().width;
+    auto renderHeight = backend.getDefaultRenderable().getSize().height;
+    if (renderWidth < 900 || renderHeight < 900) {
+        return true; // skip IC
+    }
+    return false;
+    // Log::Error(Event::Render, "################################$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$: " +
+    // std::to_string(renderWidth) + " x " + std::to_string(renderHeight));
+}
+
 void Renderer::Impl::render(const RenderTree& renderTree,
                             [[maybe_unused]] const std::shared_ptr<UpdateParameters>& updateParameters) {
     MLN_TRACE_FUNC();
+
     auto& context = backend.getContext();
 #if MLN_RENDER_BACKEND_METAL
     if constexpr (EnableMetalCapture) {

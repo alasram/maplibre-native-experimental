@@ -54,6 +54,8 @@
 #include "run_loop_impl.hpp"
 #include "style/light.hpp"
 
+#include <mbgl/util/instrumentation.hpp>
+
 namespace mbgl {
 namespace android {
 
@@ -66,6 +68,7 @@ NativeMapView::NativeMapView(jni::JNIEnv& _env,
     : javaPeer(_env, _obj),
       mapRenderer(MapRenderer::getNativePeer(_env, jMapRenderer)),
       pixelRatio(pixelRatio_) {
+    MLN_TRACE_FUNC();
     // Get a reference to the JavaVM for callbacks
     if (_env.GetJavaVM(&vm) < 0) {
         _env.ExceptionDescribe();
@@ -96,11 +99,13 @@ NativeMapView::NativeMapView(jni::JNIEnv& _env,
  * Called through NativeMapView#destroy()
  */
 NativeMapView::~NativeMapView() {
+    MLN_TRACE_FUNC();
     map.reset();
     vm = nullptr;
 }
 
 void NativeMapView::onCameraWillChange(MapObserver::CameraChangeMode mode) {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -113,6 +118,7 @@ void NativeMapView::onCameraWillChange(MapObserver::CameraChangeMode mode) {
 }
 
 void NativeMapView::onCameraIsChanging() {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -125,6 +131,7 @@ void NativeMapView::onCameraIsChanging() {
 }
 
 void NativeMapView::onCameraDidChange(MapObserver::CameraChangeMode mode) {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -137,6 +144,7 @@ void NativeMapView::onCameraDidChange(MapObserver::CameraChangeMode mode) {
 }
 
 void NativeMapView::onWillStartLoadingMap() {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -149,6 +157,7 @@ void NativeMapView::onWillStartLoadingMap() {
 }
 
 void NativeMapView::onDidFinishLoadingMap() {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -161,6 +170,7 @@ void NativeMapView::onDidFinishLoadingMap() {
 }
 
 void NativeMapView::onDidFailLoadingMap(MapLoadError, const std::string& error) {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -173,6 +183,7 @@ void NativeMapView::onDidFailLoadingMap(MapLoadError, const std::string& error) 
 }
 
 void NativeMapView::onWillStartRenderingFrame() {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -185,6 +196,7 @@ void NativeMapView::onWillStartRenderingFrame() {
 }
 
 void NativeMapView::onDidFinishRenderingFrame(MapObserver::RenderFrameStatus status) {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -202,6 +214,7 @@ void NativeMapView::onDidFinishRenderingFrame(MapObserver::RenderFrameStatus sta
 }
 
 void NativeMapView::onWillStartRenderingMap() {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -214,6 +227,7 @@ void NativeMapView::onWillStartRenderingMap() {
 }
 
 void NativeMapView::onDidFinishRenderingMap(MapObserver::RenderMode mode) {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -226,6 +240,7 @@ void NativeMapView::onDidFinishRenderingMap(MapObserver::RenderMode mode) {
 }
 
 void NativeMapView::onDidBecomeIdle() {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -238,6 +253,7 @@ void NativeMapView::onDidBecomeIdle() {
 }
 
 void NativeMapView::onDidFinishLoadingStyle() {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -250,6 +266,7 @@ void NativeMapView::onDidFinishLoadingStyle() {
 }
 
 void NativeMapView::onSourceChanged(mbgl::style::Source& source) {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -263,6 +280,7 @@ void NativeMapView::onSourceChanged(mbgl::style::Source& source) {
 }
 
 void NativeMapView::onStyleImageMissing(const std::string& imageId) {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -275,6 +293,7 @@ void NativeMapView::onStyleImageMissing(const std::string& imageId) {
 }
 
 bool NativeMapView::onCanRemoveUnusedStyleImage(const std::string& imageId) {
+    MLN_TRACE_FUNC();
     assert(vm != nullptr);
 
     android::UniqueEnv _env = android::AttachEnv();
@@ -292,28 +311,34 @@ bool NativeMapView::onCanRemoveUnusedStyleImage(const std::string& imageId) {
 // JNI Methods //
 
 void NativeMapView::resizeView(jni::JNIEnv&, int w, int h) {
+    MLN_TRACE_FUNC();
     width = util::max(64, w);
     height = util::max(64, h);
     map->setSize({static_cast<uint32_t>(width), static_cast<uint32_t>(height)});
 }
 
 jni::Local<jni::String> NativeMapView::getStyleUrl(jni::JNIEnv& env) {
+    MLN_TRACE_FUNC();
     return jni::Make<jni::String>(env, map->getStyle().getURL());
 }
 
 void NativeMapView::setStyleUrl(jni::JNIEnv& env, const jni::String& url) {
+    MLN_TRACE_FUNC();
     map->getStyle().loadURL(jni::Make<std::string>(env, url));
 }
 
 jni::Local<jni::String> NativeMapView::getStyleJson(jni::JNIEnv& env) {
+    MLN_TRACE_FUNC();
     return jni::Make<jni::String>(env, map->getStyle().getJSON());
 }
 
 void NativeMapView::setStyleJson(jni::JNIEnv& env, const jni::String& json) {
+    MLN_TRACE_FUNC();
     map->getStyle().loadJSON(jni::Make<std::string>(env, json));
 }
 
 void NativeMapView::setLatLngBounds(jni::JNIEnv& env, const jni::Object<mbgl::android::LatLngBounds>& jBounds) {
+    MLN_TRACE_FUNC();
     mbgl::BoundOptions bounds;
     if (jBounds) {
         bounds.withLatLngBounds(mbgl::android::LatLngBounds::getLatLngBounds(env, jBounds));
@@ -324,14 +349,17 @@ void NativeMapView::setLatLngBounds(jni::JNIEnv& env, const jni::Object<mbgl::an
 }
 
 void NativeMapView::cancelTransitions(jni::JNIEnv&) {
+    MLN_TRACE_FUNC();
     map->cancelTransitions();
 }
 
 void NativeMapView::setGestureInProgress(jni::JNIEnv&, jni::jboolean inProgress) {
+    MLN_TRACE_FUNC();
     map->setGestureInProgress(inProgress);
 }
 
 void NativeMapView::moveBy(jni::JNIEnv&, jni::jdouble dx, jni::jdouble dy, jni::jlong duration) {
+    MLN_TRACE_FUNC();
     mbgl::AnimationOptions animationOptions;
     if (duration > 0) {
         animationOptions.duration.emplace(mbgl::Milliseconds(duration));
@@ -347,6 +375,7 @@ void NativeMapView::jumpTo(jni::JNIEnv& env,
                            jni::jdouble pitch,
                            jni::jdouble zoom,
                            const jni::Array<jni::jdouble>& padding) {
+    MLN_TRACE_FUNC();
     mbgl::CameraOptions options;
     if (bearing != -1) {
         options.bearing = bearing;
@@ -376,6 +405,7 @@ void NativeMapView::easeTo(jni::JNIEnv& env,
                            jni::jdouble zoom,
                            const jni::Array<jni::jdouble>& padding,
                            jni::jboolean easing) {
+    MLN_TRACE_FUNC();
     mbgl::CameraOptions cameraOptions;
     if (bearing != -1) {
         cameraOptions.bearing = bearing;
@@ -411,6 +441,7 @@ void NativeMapView::flyTo(jni::JNIEnv& env,
                           jni::jdouble pitch,
                           jni::jdouble zoom,
                           const jni::Array<jni::jdouble>& padding) {
+    MLN_TRACE_FUNC();
     mbgl::CameraOptions cameraOptions;
     if (bearing != -1) {
         cameraOptions.bearing = bearing;
@@ -442,6 +473,7 @@ void NativeMapView::setLatLng(jni::JNIEnv& env,
                               jni::jdouble longitude,
                               const jni::Array<jni::jdouble>& padding,
                               jni::jlong duration) {
+    MLN_TRACE_FUNC();
     mbgl::CameraOptions cameraOptions;
     cameraOptions.center = mbgl::LatLng(latitude, longitude);
     if (padding) {
@@ -461,6 +493,7 @@ jni::Local<jni::Object<CameraPosition>> NativeMapView::getCameraForLatLngBounds(
     double right,
     double bearing,
     double tilt) {
+    MLN_TRACE_FUNC();
     mbgl::EdgeInsets padding = {top, left, bottom, right};
     return CameraPosition::New(
         env,
@@ -477,22 +510,26 @@ jni::Local<jni::Object<CameraPosition>> NativeMapView::getCameraForGeometry(
     double right,
     double bearing,
     double tilt) {
+    MLN_TRACE_FUNC();
     auto geometry = geojson::Geometry::convert(env, jGeometry);
     mbgl::EdgeInsets padding = {top, left, bottom, right};
     return CameraPosition::New(env, map->cameraForGeometry(geometry, padding, bearing, tilt), pixelRatio);
 }
 
 void NativeMapView::setReachability(jni::JNIEnv&, jni::jboolean reachable) {
+    MLN_TRACE_FUNC();
     if (reachable) {
         mbgl::NetworkStatus::Reachable();
     }
 }
 
 void NativeMapView::resetPosition(jni::JNIEnv&) {
+    MLN_TRACE_FUNC();
     map->jumpTo(mbgl::CameraOptions().withCenter(mbgl::LatLng{}).withZoom(0.0).withBearing(0.0).withPitch(0.0));
 }
 
 jni::jdouble NativeMapView::getPitch(jni::JNIEnv&) {
+    MLN_TRACE_FUNC();
     return *map->getCameraOptions().pitch;
 }
 
@@ -606,6 +643,7 @@ void NativeMapView::setVisibleCoordinateBounds(JNIEnv& env,
 }
 
 void NativeMapView::getVisibleCoordinateBounds(JNIEnv& env, jni::Array<jdouble>& output) {
+    MLN_TRACE_FUNC();
     auto latlngBounds = map->latLngBoundsForCameraUnwrapped(map->getCameraOptions(std::nullopt));
 
     double latNorth = latlngBounds.north();
@@ -626,6 +664,7 @@ void NativeMapView::getVisibleCoordinateBounds(JNIEnv& env, jni::Array<jdouble>&
 }
 
 void NativeMapView::scheduleSnapshot(jni::JNIEnv&) {
+    MLN_TRACE_FUNC();
     mapRenderer.requestSnapshot([&](PremultipliedImage image) {
         auto _env = android::AttachEnv();
         // Convert image to bitmap
@@ -677,6 +716,7 @@ jni::Local<jni::Array<jni::jlong>> NativeMapView::addMarkers(jni::JNIEnv& env,
 }
 
 void NativeMapView::onLowMemory(JNIEnv&) {
+    MLN_TRACE_FUNC();
     rendererFrontend->reduceMemoryUse();
 }
 
@@ -723,6 +763,7 @@ void NativeMapView::pixelsForLatLngs(JNIEnv& env,
                                      const jni::Array<jdouble>& input,
                                      jni::Array<jdouble>& output,
                                      jfloat pixelRatio_) {
+    MLN_TRACE_FUNC();
     jni::NullCheck(env, &input);
     std::size_t len = input.Length(env);
 
@@ -753,6 +794,7 @@ void NativeMapView::latLngsForPixels(JNIEnv& env,
                                      const jni::Array<jdouble>& input,
                                      jni::Array<jdouble>& output,
                                      jfloat pixelRatio_) {
+    MLN_TRACE_FUNC();
     jni::NullCheck(env, &input);
     std::size_t len = input.Length(env);
 
@@ -777,6 +819,7 @@ void NativeMapView::latLngsForPixels(JNIEnv& env,
 
 jni::Local<jni::Array<jlong>> NativeMapView::addPolylines(JNIEnv& env,
                                                           const jni::Array<jni::Object<Polyline>>& polylines) {
+    MLN_TRACE_FUNC();
     NullCheck(env, &polylines);
     std::size_t len = polylines.Length(env);
 
@@ -796,6 +839,7 @@ jni::Local<jni::Array<jlong>> NativeMapView::addPolylines(JNIEnv& env,
 
 jni::Local<jni::Array<jlong>> NativeMapView::addPolygons(JNIEnv& env,
                                                          const jni::Array<jni::Object<Polygon>>& polygons) {
+    MLN_TRACE_FUNC();
     NullCheck(env, &polygons);
     std::size_t len = polygons.Length(env);
 
@@ -814,11 +858,13 @@ jni::Local<jni::Array<jlong>> NativeMapView::addPolygons(JNIEnv& env,
 }
 
 void NativeMapView::updatePolyline(JNIEnv& env, jlong polylineId, const jni::Object<Polyline>& polyline) {
+    MLN_TRACE_FUNC();
     mbgl::LineAnnotation annotation = Polyline::toAnnotation(env, polyline);
     map->updateAnnotation(polylineId, annotation);
 }
 
 void NativeMapView::updatePolygon(JNIEnv& env, jlong polygonId, const jni::Object<Polygon>& polygon) {
+    MLN_TRACE_FUNC();
     mbgl::FillAnnotation annotation = Polygon::toAnnotation(env, polygon);
     map->updateAnnotation(polygonId, annotation);
 }
@@ -841,6 +887,7 @@ void NativeMapView::addAnnotationIcon(
     JNIEnv& env, const jni::String& symbol, jint w, jint h, jfloat scale, const jni::Array<jbyte>& jpixels) {
     const std::string symbolName = jni::Make<std::string>(env, symbol);
 
+    MLN_TRACE_FUNC();
     NullCheck(env, &jpixels);
     std::size_t size = jpixels.Length(env);
 
@@ -855,6 +902,7 @@ void NativeMapView::addAnnotationIcon(
 }
 
 void NativeMapView::removeAnnotationIcon(JNIEnv& env, const jni::String& symbol) {
+    MLN_TRACE_FUNC();
     const std::string symbolName = jni::Make<std::string>(env, symbol);
     map->removeAnnotationImage(symbolName);
 }
@@ -864,6 +912,7 @@ jdouble NativeMapView::getTopOffsetPixelsForAnnotationSymbol(JNIEnv& env, const 
 }
 
 jni::Local<jni::Object<TransitionOptions>> NativeMapView::getTransitionOptions(JNIEnv& env) {
+    MLN_TRACE_FUNC();
     const auto transitionOptions = map->getStyle().getTransitionOptions();
     const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                               transitionOptions.duration.value_or(mbgl::Duration::zero()))

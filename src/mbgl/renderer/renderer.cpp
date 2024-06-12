@@ -31,6 +31,11 @@ void Renderer::setObserver(RendererObserver* observer) {
 
 void Renderer::render(const std::shared_ptr<UpdateParameters>& updateParameters) {
     MLN_TRACE_FUNC();
+
+    if (impl->isIC()) {
+        return; // skip IC
+    }
+
     assert(updateParameters);
     if (auto renderTree = impl->orchestrator.createRenderTree(updateParameters)) {
         renderTree->prepare();

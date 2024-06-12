@@ -2,6 +2,7 @@
 
 #include <mbgl/storage/network_status.hpp>
 #include <mbgl/util/logging.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #include <jni/jni.hpp>
 
@@ -16,10 +17,12 @@ ConnectivityListener::ConnectivityListener(jni::JNIEnv&) {}
 ConnectivityListener::~ConnectivityListener() {}
 
 void ConnectivityListener::onConnectivityStateChanged(jni::JNIEnv&, jni::jboolean connected) {
+    MLN_TRACE_FUNC();
     NetworkStatus::Set(connected ? NetworkStatus::Status::Online : NetworkStatus::Status::Offline);
 }
 
 void ConnectivityListener::registerNative(jni::JNIEnv& env) {
+    MLN_TRACE_FUNC();
     // Lookup the class
     static auto& javaClass = jni::Class<ConnectivityListener>::Singleton(env);
 

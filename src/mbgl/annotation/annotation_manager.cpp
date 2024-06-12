@@ -14,6 +14,8 @@
 
 #include <boost/iterator/function_output_iterator.hpp>
 
+#include <mbgl/util/instrumentation.hpp>
+
 // Note: LayerManager::annotationsEnabled is defined
 // at compile time, so that linker (with LTO on) is able
 // to optimize out the unreachable code.
@@ -42,16 +44,22 @@ AnnotationManager::AnnotationManager(Style& style_)
 AnnotationManager::~AnnotationManager() = default;
 
 void AnnotationManager::setStyle(Style& style_) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN_NOARG();
     style = style_;
 }
 
 void AnnotationManager::onStyleLoaded() {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN_NOARG();
     updateStyle();
 }
 
 AnnotationID AnnotationManager::addAnnotation(const Annotation& annotation) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN(nextID++);
     std::lock_guard<std::mutex> lock(mutex);
     AnnotationID id = nextID++;
@@ -61,6 +69,8 @@ AnnotationID AnnotationManager::addAnnotation(const Annotation& annotation) {
 }
 
 bool AnnotationManager::updateAnnotation(const AnnotationID& id, const Annotation& annotation) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN(true);
     std::lock_guard<std::mutex> lock(mutex);
     Annotation::visit(annotation, [&](const auto& annotation_) { this->update(id, annotation_); });
@@ -68,6 +78,8 @@ bool AnnotationManager::updateAnnotation(const AnnotationID& id, const Annotatio
 }
 
 void AnnotationManager::removeAnnotation(const AnnotationID& id) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN_NOARG();
     std::lock_guard<std::mutex> lock(mutex);
     remove(id);
@@ -75,24 +87,32 @@ void AnnotationManager::removeAnnotation(const AnnotationID& id) {
 }
 
 void AnnotationManager::add(const AnnotationID& id, const SymbolAnnotation& annotation) {
+    MLN_TRACE_FUNC();
+
     auto impl = std::make_shared<SymbolAnnotationImpl>(id, annotation);
     symbolTree.insert(impl);
     symbolAnnotations.emplace(id, impl);
 }
 
 void AnnotationManager::add(const AnnotationID& id, const LineAnnotation& annotation) {
+    MLN_TRACE_FUNC();
+
     ShapeAnnotationImpl& impl =
         *shapeAnnotations.emplace(id, std::make_unique<LineAnnotationImpl>(id, annotation)).first->second;
     impl.updateStyle(*style.get().impl);
 }
 
 void AnnotationManager::add(const AnnotationID& id, const FillAnnotation& annotation) {
+    MLN_TRACE_FUNC();
+
     ShapeAnnotationImpl& impl =
         *shapeAnnotations.emplace(id, std::make_unique<FillAnnotationImpl>(id, annotation)).first->second;
     impl.updateStyle(*style.get().impl);
 }
 
 void AnnotationManager::update(const AnnotationID& id, const SymbolAnnotation& annotation) {
+    MLN_TRACE_FUNC();
+
     auto it = symbolAnnotations.find(id);
     if (it == symbolAnnotations.end()) {
         assert(false); // Attempt to update a non-existent symbol annotation
@@ -110,6 +130,8 @@ void AnnotationManager::update(const AnnotationID& id, const SymbolAnnotation& a
 }
 
 void AnnotationManager::update(const AnnotationID& id, const LineAnnotation& annotation) {
+    MLN_TRACE_FUNC();
+
     auto it = shapeAnnotations.find(id);
     if (it == shapeAnnotations.end()) {
         assert(false); // Attempt to update a non-existent shape annotation
@@ -122,6 +144,8 @@ void AnnotationManager::update(const AnnotationID& id, const LineAnnotation& ann
 }
 
 void AnnotationManager::update(const AnnotationID& id, const FillAnnotation& annotation) {
+    MLN_TRACE_FUNC();
+
     auto it = shapeAnnotations.find(id);
     if (it == shapeAnnotations.end()) {
         assert(false); // Attempt to update a non-existent shape annotation
@@ -134,6 +158,8 @@ void AnnotationManager::update(const AnnotationID& id, const FillAnnotation& ann
 }
 
 void AnnotationManager::remove(const AnnotationID& id) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN_NOARG();
     if (symbolAnnotations.find(id) != symbolAnnotations.end()) {
         symbolTree.remove(symbolAnnotations.at(id));
@@ -148,6 +174,8 @@ void AnnotationManager::remove(const AnnotationID& id) {
 }
 
 std::unique_ptr<AnnotationTileData> AnnotationManager::getTileData(const CanonicalTileID& tileID) {
+    MLN_TRACE_FUNC();
+
     if (symbolAnnotations.empty() && shapeAnnotations.empty()) return nullptr;
 
     auto tileData = std::make_unique<AnnotationTileData>();
@@ -174,6 +202,8 @@ std::unique_ptr<AnnotationTileData> AnnotationManager::getTileData(const Canonic
 }
 
 void AnnotationManager::updateStyle() {
+    MLN_TRACE_FUNC();
+
     // Create annotation source, point layer, and point bucket. We do everything
     // via Style::Impl because we don't want annotation mutations to trigger
     // Style::Impl::styleMutated to be set.
@@ -211,6 +241,8 @@ void AnnotationManager::updateStyle() {
 }
 
 void AnnotationManager::updateData() {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN_NOARG();
     std::lock_guard<std::mutex> lock(mutex);
     if (dirty) {
@@ -222,6 +254,8 @@ void AnnotationManager::updateData() {
 }
 
 void AnnotationManager::addTile(AnnotationTile& tile) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN_NOARG();
     std::lock_guard<std::mutex> lock(mutex);
     tiles.insert(&tile);
@@ -229,6 +263,8 @@ void AnnotationManager::addTile(AnnotationTile& tile) {
 }
 
 void AnnotationManager::removeTile(AnnotationTile& tile) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN_NOARG();
     std::lock_guard<std::mutex> lock(mutex);
     tiles.erase(&tile);
@@ -237,10 +273,14 @@ void AnnotationManager::removeTile(AnnotationTile& tile) {
 // To ensure that annotation images do not collide with images from the style,
 // we prefix input image IDs with "com.mapbox.annotations".
 static std::string prefixedImageID(const std::string& id) {
+    MLN_TRACE_FUNC();
+
     return AnnotationManager::SourceID + "." + id;
 }
 
 void AnnotationManager::addImage(std::unique_ptr<style::Image> image) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN_NOARG();
     std::lock_guard<std::mutex> lock(mutex);
     const std::string id = prefixedImageID(image->getID());
@@ -251,7 +291,10 @@ void AnnotationManager::addImage(std::unique_ptr<style::Image> image) {
 }
 
 void AnnotationManager::removeImage(const std::string& id_) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN_NOARG();
+
     std::lock_guard<std::mutex> lock(mutex);
     const std::string id = prefixedImageID(id_);
     images.erase(id);
@@ -259,6 +302,8 @@ void AnnotationManager::removeImage(const std::string& id_) {
 }
 
 double AnnotationManager::getTopOffsetPixelsForImage(const std::string& id_) {
+    MLN_TRACE_FUNC();
+
     CHECK_ANNOTATIONS_ENABLED_AND_RETURN(0.0);
     std::lock_guard<std::mutex> lock(mutex);
     const std::string id = prefixedImageID(id_);

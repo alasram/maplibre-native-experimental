@@ -135,6 +135,8 @@ void Context::beginFrame() {
 void Context::endFrame() {
     MLN_TRACE_FUNC();
 
+    glFlush();
+
 #if MLN_DRAWABLE_RENDERER
     if (!frameInFlightFence) {
         return;

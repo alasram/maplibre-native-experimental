@@ -6,6 +6,7 @@
 #include <mbgl/util/string.hpp>
 #include <mbgl/tile/tile_observer.hpp>
 #include <mbgl/style/custom_tile_loader.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #include <mapbox/geojsonvt.hpp>
 
@@ -31,6 +32,8 @@ CustomGeometryTile::~CustomGeometryTile() {
 }
 
 void CustomGeometryTile::setTileData(const GeoJSON& geoJSON) {
+    MLN_TRACE_FUNC();
+
     auto featureData = mapbox::feature::feature_collection<int16_t>();
     if (geoJSON.is<FeatureCollection>() && !geoJSON.get<FeatureCollection>().empty()) {
         auto scale = util::EXTENT / options->tileSize;

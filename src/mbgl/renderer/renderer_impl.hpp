@@ -35,6 +35,8 @@ private:
 
     void reduceMemoryUse();
 
+    bool isIC() const;
+
     // TODO: Move orchestrator to Map::Impl.
     RenderOrchestrator orchestrator;
 

@@ -10,6 +10,7 @@
 #include "attach_env.hpp"
 #include "android_renderer_backend.hpp"
 #include "map_renderer_runnable.hpp"
+#include <mbgl/util/instrumentation.hpp>
 
 namespace mbgl {
 namespace android {
@@ -30,6 +31,7 @@ MapRenderer::MailboxData::MailboxData(Scheduler* scheduler_)
 }
 
 std::shared_ptr<Mailbox> MapRenderer::MailboxData::getMailbox() const noexcept {
+    MLN_TRACE_FUNC();
     if (!mailbox) {
         mailbox = std::make_shared<Mailbox>(*scheduler);
     }
@@ -39,6 +41,7 @@ std::shared_ptr<Mailbox> MapRenderer::MailboxData::getMailbox() const noexcept {
 MapRenderer::~MapRenderer() = default;
 
 void MapRenderer::reset() {
+    MLN_TRACE_FUNC();
     try {
         destroyed = true;
 
@@ -61,6 +64,7 @@ ActorRef<Renderer> MapRenderer::actor() const {
 }
 
 void MapRenderer::schedule(std::function<void()>&& scheduled) {
+    MLN_TRACE_FUNC();
     try {
         // Create a runnable
         android::UniqueEnv _env = android::AttachEnv();
@@ -85,6 +89,7 @@ void MapRenderer::schedule(std::function<void()>&& scheduled) {
 }
 
 std::size_t MapRenderer::waitForEmpty(Milliseconds timeout) {
+    MLN_TRACE_FUNC();
     try {
         android::UniqueEnv _env = android::AttachEnv();
         static auto& javaClass = jni::Class<MapRenderer>::Singleton(*_env);
@@ -102,6 +107,7 @@ std::size_t MapRenderer::waitForEmpty(Milliseconds timeout) {
 }
 
 void MapRenderer::requestRender() {
+    MLN_TRACE_FUNC();
     try {
         android::UniqueEnv _env = android::AttachEnv();
         static auto& javaClass = jni::Class<MapRenderer>::Singleton(*_env);
@@ -116,6 +122,7 @@ void MapRenderer::requestRender() {
 }
 
 void MapRenderer::update(std::shared_ptr<UpdateParameters> params) {
+    MLN_TRACE_FUNC();
     try {
         // Lock on the parameters
         std::lock_guard<std::mutex> lock(updateMutex);
@@ -126,6 +133,7 @@ void MapRenderer::update(std::shared_ptr<UpdateParameters> params) {
 }
 
 void MapRenderer::setObserver(std::shared_ptr<RendererObserver> _rendererObserver) {
+    MLN_TRACE_FUNC();
     try {
         // Lock as the initialization can come from the main thread or the GL thread first
         std::lock_guard<std::mutex> lock(initialisationMutex);
@@ -142,6 +150,7 @@ void MapRenderer::setObserver(std::shared_ptr<RendererObserver> _rendererObserve
 }
 
 void MapRenderer::requestSnapshot(SnapshotCallback callback) {
+    MLN_TRACE_FUNC();
     auto self = ActorRef<MapRenderer>(*this, mailboxData.getMailbox());
     self.invoke(
         &MapRenderer::scheduleSnapshot,
@@ -160,16 +169,19 @@ void MapRenderer::requestSnapshot(SnapshotCallback callback) {
 // Called on OpenGL thread //
 
 void MapRenderer::resetRenderer() {
+    MLN_TRACE_FUNC();
     renderer.reset();
     backend.reset();
 }
 
 void MapRenderer::scheduleSnapshot(std::unique_ptr<SnapshotCallback> callback) {
+    MLN_TRACE_FUNC();
     snapshotCallback = std::move(callback);
     requestRender();
 }
 
 void MapRenderer::render(JNIEnv&) {
+    MLN_TRACE_FUNC();
     assert(renderer);
 
     std::shared_ptr<UpdateParameters> params;
@@ -204,6 +216,7 @@ void MapRenderer::render(JNIEnv&) {
 }
 
 void MapRenderer::onSurfaceCreated(JNIEnv&) {
+    MLN_TRACE_FUNC();
     // Lock as the initialization can come from the main thread or the GL thread first
     std::lock_guard<std::mutex> lock(initialisationMutex);
 
@@ -232,6 +245,7 @@ void MapRenderer::onSurfaceCreated(JNIEnv&) {
 }
 
 void MapRenderer::onSurfaceChanged(JNIEnv& env, jint width, jint height) {
+    MLN_TRACE_FUNC();
     if (!renderer) {
         // In case the surface has been destroyed (due to app back-grounding)
         onSurfaceCreated(env);
@@ -243,6 +257,7 @@ void MapRenderer::onSurfaceChanged(JNIEnv& env, jint width, jint height) {
 }
 
 void MapRenderer::onRendererReset(JNIEnv&) {
+    MLN_TRACE_FUNC();
     // Make sure to destroy the renderer on the GL Thread
     auto self = ActorRef<MapRenderer>(*this, mailboxData.getMailbox());
     self.ask(&MapRenderer::resetRenderer).wait();
@@ -250,16 +265,19 @@ void MapRenderer::onRendererReset(JNIEnv&) {
 
 // needs to be called on GL thread
 void MapRenderer::onSurfaceDestroyed(JNIEnv&) {
+    MLN_TRACE_FUNC();
     resetRenderer();
 }
 
 void MapRenderer::setSwapBehaviorFlush(JNIEnv&, jboolean flush) {
+    MLN_TRACE_FUNC();
     backend->setSwapBehavior(flush ? gfx::Renderable::SwapBehaviour::Flush : gfx::Renderable::SwapBehaviour::NoFlush);
 }
 
 // Static methods //
 
 void MapRenderer::registerNative(jni::JNIEnv& env) {
+    MLN_TRACE_FUNC();
     // Lookup the class
     static auto& javaClass = jni::Class<MapRenderer>::Singleton(env);
 
@@ -282,6 +300,7 @@ void MapRenderer::registerNative(jni::JNIEnv& env) {
 }
 
 MapRenderer& MapRenderer::getNativePeer(JNIEnv& env, const jni::Object<MapRenderer>& jObject) {
+    MLN_TRACE_FUNC();
     static auto& javaClass = jni::Class<MapRenderer>::Singleton(env);
     static auto field = javaClass.GetField<jlong>(env, "nativePtr");
     MapRenderer* mapRenderer = reinterpret_cast<MapRenderer*>(jObject.Get(env, field));
