@@ -169,6 +169,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
     }
 
     if (LayerManager::annotationsEnabled) {
+        MLN_TRACE_ZONE(annotationsEnabled);
         auto guard = updateParameters->annotationManager.lock();
         if (updateParameters->annotationManager) {
             updateParameters->annotationManager->updateData();
@@ -204,11 +205,13 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
     const bool lightChanged = renderLight.impl != updateParameters->light;
 
     if (lightChanged) {
+        MLN_TRACE_ZONE(lightChanged);
         renderLight.impl = updateParameters->light;
         renderLight.transition(transitionParameters);
     }
 
     if (lightChanged || zoomChanged || renderLight.hasTransition()) {
+        MLN_TRACE_ZONE(lightChanged_zoomChanged_renderLightTrans);
         renderLight.evaluate(evaluationParameters);
     }
 
@@ -221,6 +224,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
 
     // Remove removed images from sprite atlas.
     for (const auto& entry : imageDiff.removed) {
+        MLN_TRACE_ZONE(removeImage_removePattern);
         imageManager->removeImage(entry.first);
         patternAtlas->removePattern(entry.first);
     }
@@ -232,6 +236,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
 
     // Update changed images.
     for (const auto& entry : imageDiff.changed) {
+        MLN_TRACE_ZONE(updateImage_removePattern);
         if (imageManager->updateImage(entry.second.after)) {
             patternAtlas->removePattern(entry.first);
             hasImageDiff = true;
@@ -281,6 +286,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
     }
 
     if (layersAddedOrRemoved) {
+        MLN_TRACE_ZONE(layersAddedOrRemoved);
         orderedLayers.clear();
         orderedLayers.reserve(layerImpls->size());
         [[maybe_unused]] int32_t layerIndex = 0;
@@ -304,6 +310,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
     // Update layers for class and zoom changes.
     std::unordered_set<std::string> constantsMaskChanged;
     for (RenderLayer& layer : orderedLayers) {
+        MLN_TRACE_ZONE(constantsMaskChanged);
         const std::string& id = layer.getID();
         const bool layerAddedOrChanged = layerDiff.added.count(id) || layerDiff.changed.count(id);
         evaluationParameters.layerChanged = layerAddedOrChanged;
@@ -327,6 +334,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
 
     // Create render sources for newly added sources.
     for (const auto& entry : sourceDiff.added) {
+        MLN_TRACE_ZONE(renderSource);
         std::unique_ptr<RenderSource> renderSource = RenderSource::create(entry.second, threadPool);
         renderSource->setObserver(this);
         renderSources.emplace(entry.first, std::move(renderSource));
@@ -357,6 +365,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
 
     // Update all sources and initialize renderItems.
     for (const auto& sourceImpl : *sourceImpls) {
+        MLN_TRACE_ZONE(sourceImpl);
         RenderSource* source = renderSources.at(sourceImpl->id).get();
         bool sourceNeedsRendering = false;
         bool sourceNeedsRelayout = false;
@@ -426,6 +435,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
 
     // Prepare. Update all matrices and generate data that we should upload to the GPU.
     for (const auto& entry : renderSources) {
+        MLN_TRACE_ZONE(renderSources);
         if (entry.second->isEnabled()) {
             entry.second->prepare(
                 {renderTreeParameters->transformParams, updateParameters->debugOptions, *imageManager});
@@ -434,6 +444,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
 
     auto opaquePassCutOffEstimation = layerRenderItems.size();
     for (auto& renderItem : layerRenderItems) {
+        MLN_TRACE_ZONE(layerRenderItems);
         RenderLayer& renderLayer = renderItem.layer;
         renderLayer.prepare(
             {renderItem.source, *imageManager, *patternAtlas, *lineAtlas, updateParameters->transformState});
@@ -454,6 +465,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
     std::set<std::string> usedSymbolLayers;
     const auto longitude = static_cast<float>(updateParameters->transformState.getLatLng().longitude());
     for (auto it = layersNeedPlacement.crbegin(); it != layersNeedPlacement.crend(); ++it) {
+        MLN_TRACE_ZONE(layersNeedPlacement);
         RenderLayer& layer = *it;
         auto result = crossTileSymbolIndex.addLayer(layer, longitude);
         if (isMapModeContinuous) {
@@ -464,6 +476,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
     }
 
     if (isMapModeContinuous) {
+        MLN_TRACE_ZONE(isMapModeContinuous);
         std::optional<Duration> placementUpdatePeriodOverride;
         if (symbolBucketsAdded && !tiltedView) {
             // If the view is not tilted, we want *the new* symbols to show up
@@ -484,6 +497,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
             placementUpdatePeriodOverride);
         symbolBucketsChanged |= renderTreeParameters->placementChanged;
         if (renderTreeParameters->placementChanged) {
+            MLN_TRACE_ZONE(renderTreeParameters_placementChanged);
             Mutable<Placement> placement = Placement::create(updateParameters, placementController.getPlacement());
             placement->placeLayers(layersNeedPlacement);
             placementController.setPlacement(std::move(placement));
@@ -498,6 +512,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
             updateParameters->timePoint);
         renderTreeParameters->needsRepaint = hasTransitions(updateParameters->timePoint);
     } else {
+        MLN_TRACE_ZONE(renderTreeParameters_placementChanged2);
         renderTreeParameters->placementChanged = symbolBucketsChanged = !layersNeedPlacement.empty();
         if (renderTreeParameters->placementChanged) {
             Mutable<Placement> placement = Placement::create(updateParameters);
@@ -511,6 +526,7 @@ std::unique_ptr<RenderTree> RenderOrchestrator::createRenderTree(
     }
 
     if (!renderTreeParameters->needsRepaint && renderTreeParameters->loaded) {
+        MLN_TRACE_ZONE(imageManager_reduceMemoryUseIfCacheSizeExceedsLimit);
         // Notify observer about unused images when map is fully loaded
         // and there are no ongoing transitions.
         imageManager->reduceMemoryUseIfCacheSizeExceedsLimit();

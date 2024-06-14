@@ -3,6 +3,7 @@
 #include <mbgl/util/immutable.hpp>
 #include <mbgl/util/variant.hpp>
 #include <mbgl/util/longest_common_subsequence.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 namespace mbgl {
 
@@ -44,11 +45,13 @@ StyleDifference<T> diff(const Immutable<std::vector<T>>& a, const Immutable<std:
 
 ImageDifference diffImages(const Immutable<std::vector<ImmutableImage>>& a,
                            const Immutable<std::vector<ImmutableImage>>& b) {
+    MLN_TRACE_FUNC();
     return diff(a, b, [](const ImmutableImage& lhs, const ImmutableImage& rhs) { return lhs->id == rhs->id; });
 }
 
 SourceDifference diffSources(const Immutable<std::vector<ImmutableSource>>& a,
                              const Immutable<std::vector<ImmutableSource>>& b) {
+    MLN_TRACE_FUNC();
     return diff(a, b, [](const ImmutableSource& lhs, const ImmutableSource& rhs) {
         return std::tie(lhs->id, lhs->type) == std::tie(rhs->id, rhs->type);
     });
@@ -56,12 +59,14 @@ SourceDifference diffSources(const Immutable<std::vector<ImmutableSource>>& a,
 
 LayerDifference diffLayers(const Immutable<std::vector<ImmutableLayer>>& a,
                            const Immutable<std::vector<ImmutableLayer>>& b) {
+    MLN_TRACE_FUNC();
     return diff(a, b, [](const ImmutableLayer& lhs, const ImmutableLayer& rhs) {
         return (lhs->id == rhs->id) && (lhs->getTypeInfo() == rhs->getTypeInfo());
     });
 }
 
 bool hasLayoutDifference(const LayerDifference& layerDiff, const std::string& layerID) {
+    MLN_TRACE_FUNC();
     if (layerDiff.added.count(layerID)) return true;
     const auto it = layerDiff.changed.find(layerID);
     if (it == layerDiff.changed.end()) return false;

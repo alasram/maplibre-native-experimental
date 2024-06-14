@@ -223,6 +223,24 @@ std::set<std::string> ImageManager::getAvailableImages() const {
         std::lock_guard<std::recursive_mutex> readWriteLock(rwLock);
         MLN_TRACE_ZONE(copy_availableImages);
         copy = availableImages;
+        static size_t sz = 0;
+        static size_t str_sz = 0;
+        size_t s_sz = 0;
+        for (auto s : availableImages) {
+            s_sz += s.size();
+        }
+        if (availableImages.size() > sz) {
+            sz = availableImages.size();
+            Log::Error(Event::General,
+                       "###################################### availableImages size: " + std::to_string(sz) + ", " +
+                           std::to_string(s_sz));
+        }
+        if (s_sz > str_sz) {
+            str_sz = s_sz;
+            Log::Error(Event::General,
+                       "###################################### availableImages size: " +
+                           std::to_string(availableImages.size()) + ", " + std::to_string(s_sz));
+        }
     }
     return copy;
 }

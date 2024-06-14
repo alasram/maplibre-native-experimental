@@ -10,6 +10,7 @@
 #include <mbgl/style/types.hpp>
 #include <mbgl/tile/tile.hpp>
 #include <mbgl/util/logging.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #if MLN_DRAWABLE_RENDERER
 #include <mbgl/renderer/layer_group.hpp>
@@ -24,6 +25,7 @@ RenderLayer::RenderLayer(Immutable<style::LayerProperties> properties)
       baseImpl(evaluatedProperties->baseImpl) {}
 
 void RenderLayer::transition(const TransitionParameters& parameters, Immutable<style::Layer::Impl> newImpl) {
+    MLN_TRACE_FUNC();
     baseImpl = std::move(newImpl);
     transition(parameters);
 }
@@ -55,6 +57,7 @@ bool RenderLayer::supportsZoom(float zoom) const {
 }
 
 void RenderLayer::prepare(const LayerPrepareParameters& params) {
+    MLN_TRACE_FUNC();
     assert(params.source);
     assert(params.source->isEnabled());
     renderTiles = params.source->getRenderTiles();
@@ -125,6 +128,7 @@ void RenderLayer::checkRenderability(const PaintParameters& parameters, const ui
 }
 
 void RenderLayer::addRenderPassesFromTiles() {
+    MLN_TRACE_FUNC();
     assert(renderTiles);
     for (const RenderTile& tile : *renderTiles) {
         if (const LayerRenderData* renderData = tile.getLayerRenderData(*baseImpl)) {
@@ -142,6 +146,7 @@ const LayerRenderData* RenderLayer::getRenderDataForPass(const RenderTile& tile,
 
 #if MLN_DRAWABLE_RENDERER
 std::size_t RenderLayer::removeTile(RenderPass renderPass, const OverscaledTileID& tileID) {
+    MLN_TRACE_FUNC();
     if (const auto tileGroup = static_cast<TileLayerGroup*>(layerGroup.get())) {
         const auto n = tileGroup->removeDrawables(renderPass, tileID).size();
         stats.drawablesRemoved += n;
@@ -151,6 +156,7 @@ std::size_t RenderLayer::removeTile(RenderPass renderPass, const OverscaledTileI
 }
 
 std::size_t RenderLayer::removeAllDrawables() {
+    MLN_TRACE_FUNC();
     if (layerGroup) {
         const auto count = layerGroup->getDrawableCount();
         stats.drawablesRemoved += count;
@@ -161,38 +167,66 @@ std::size_t RenderLayer::removeAllDrawables() {
 }
 
 void RenderLayer::updateRenderTileIDs() {
+    MLN_TRACE_FUNC();
     if (!renderTiles || renderTiles->empty()) {
         renderTileIDs.clear();
         return;
     }
 
+    auto first = renderTiles->begin();
+    auto last = renderTiles->end();
+    auto gen = [&](const auto& tile) {
+        const auto& tileID = tile.get().getOverscaledTileID();
+        return std::make_pair(tileID, getRenderTileBucketID(tileID));
+    };
+    while (first != last) {
+        newRenderTileIDs.insert(gen(*first++));
+    }
+
+    /*
     newRenderTileIDs.assign(renderTiles->begin(), renderTiles->end(), [&](const auto& tile) {
         const auto& tileID = tile.get().getOverscaledTileID();
         return std::make_pair(tileID, getRenderTileBucketID(tileID));
     });
+    */
 
     renderTileIDs.swap(newRenderTileIDs);
     newRenderTileIDs.clear();
 }
 
 bool RenderLayer::hasRenderTile(const OverscaledTileID& tileID) const {
-    return renderTileIDs.find(tileID).has_value();
+    MLN_TRACE_FUNC();
+    // return renderTileIDs.find(tileID).has_value();
+    return renderTileIDs.find(tileID) != renderTileIDs.end();
 }
 
 util::SimpleIdentity RenderLayer::getRenderTileBucketID(const OverscaledTileID& tileID) const {
-    const auto result = renderTileIDs.find(tileID);
-    return result.has_value() ? result->get() : util::SimpleIdentity::Empty;
+    MLN_TRACE_FUNC();
+    auto result = renderTileIDs.find(tileID);
+    if (result != renderTileIDs.end()) {
+        return result->second;
+    } else {
+        return util::SimpleIdentity::Empty;
+    }
+    // return result.has_value() ? result->get() : util::SimpleIdentity::Empty;
 }
 
 bool RenderLayer::setRenderTileBucketID(const OverscaledTileID& tileID, util::SimpleIdentity bucketID) {
-    if (auto result = renderTileIDs.find(tileID); result && result->get() != bucketID) {
-        result->get() = bucketID;
+    MLN_TRACE_FUNC();
+    auto it = renderTileIDs.find(tileID);
+    if (it == renderTileIDs.end()) {
+        return false;
+    }
+    auto& result = it->second;
+    if (result != bucketID) {
+        result = bucketID;
         return true;
     }
     return false;
 }
 
 void RenderLayer::layerIndexChanged(int32_t newLayerIndex, UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     layerIndex = newLayerIndex;
 
     // Submit a change request to update the layer index of our tile layer group
@@ -206,6 +240,7 @@ void RenderLayer::changeLayerIndex(const LayerGroupBasePtr& group, int32_t newIn
 }
 
 void RenderLayer::markLayerRenderable(bool willRender, UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     isRenderable = willRender;
 
     // This layer is either being freshly included in the renderable set or excluded
@@ -213,6 +248,7 @@ void RenderLayer::markLayerRenderable(bool willRender, UniqueChangeRequestVec& c
 }
 
 void RenderLayer::setLayerGroup(LayerGroupBasePtr layerGroup_, UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     // Remove the active layer group, if any, before replacing it.
     activateLayerGroup(layerGroup, false, changes);
 
@@ -239,6 +275,7 @@ void RenderLayer::activateLayerGroup(const LayerGroupBasePtr& layerGroup_,
 #endif
 
 bool RenderLayer::applyColorRamp(const style::ColorRampPropertyValue& colorValue, PremultipliedImage& image) {
+    MLN_TRACE_FUNC();
     if (colorValue.isUndefined()) {
         return false;
     }

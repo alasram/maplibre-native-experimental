@@ -8,6 +8,7 @@
 #include <mbgl/style/layer.hpp>
 #include <mbgl/style/layer_impl.hpp>
 #include <mbgl/style/conversion_impl.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 namespace mbgl {
 
@@ -15,6 +16,7 @@ std::unique_ptr<style::Layer> LayerManager::createLayer(const std::string& type,
                                                         const std::string& id,
                                                         const style::conversion::Convertible& value,
                                                         style::conversion::Error& error) noexcept {
+    MLN_TRACE_FUNC();
     LayerFactory* factory = getFactory(type);
     if (factory) {
         auto layer = factory->createLayer(id, value);
@@ -31,6 +33,7 @@ std::unique_ptr<style::Layer> LayerManager::createLayer(const std::string& type,
 
 std::unique_ptr<Bucket> LayerManager::createBucket(
     const BucketParameters& parameters, const std::vector<Immutable<style::LayerProperties>>& layers) noexcept {
+    MLN_TRACE_FUNC();
     assert(!layers.empty());
     assert(parameters.layerType->layout == style::LayerTypeInfo::Layout::NotRequired);
     LayerFactory* factory = getFactory(parameters.layerType);
@@ -42,6 +45,7 @@ std::unique_ptr<Layout> LayerManager::createLayout(
     const LayoutParameters& parameters,
     std::unique_ptr<GeometryTileLayer> tileLayer,
     const std::vector<Immutable<style::LayerProperties>>& layers) noexcept {
+    MLN_TRACE_FUNC();
     assert(!layers.empty());
     assert(parameters.bucketParameters.layerType->layout == style::LayerTypeInfo::Layout::Required);
     LayerFactory* factory = getFactory(parameters.bucketParameters.layerType);
@@ -50,6 +54,7 @@ std::unique_ptr<Layout> LayerManager::createLayout(
 }
 
 std::unique_ptr<RenderLayer> LayerManager::createRenderLayer(Immutable<style::Layer::Impl> impl) noexcept {
+    MLN_TRACE_FUNC();
     LayerFactory* factory = getFactory(impl->getTypeInfo());
     assert(factory);
     return factory->createRenderLayer(std::move(impl));

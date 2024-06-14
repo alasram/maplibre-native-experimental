@@ -292,8 +292,9 @@ protected:
     // A sorted set of tile IDs in `renderTiles`, along with
     // the identity of the bucket from which they were built.
     // We swap between two instances to minimize reallocations.
-    static constexpr auto LinearTileIDs = 12; // From benchmarking, see #1805
-    using RenderTileIDMap = util::TinyUnorderedMap<OverscaledTileID, util::SimpleIdentity, LinearTileIDs>;
+    // static constexpr auto LinearTileIDs = 12; // From benchmarking, see #1805
+    // using RenderTileIDMap = util::TinyUnorderedMap<OverscaledTileID, util::SimpleIdentity>;
+    using RenderTileIDMap = std::unordered_map<OverscaledTileID, util::SimpleIdentity>;
     RenderTileIDMap renderTileIDs;
     RenderTileIDMap newRenderTileIDs;
 #endif

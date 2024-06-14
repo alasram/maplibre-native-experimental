@@ -10,7 +10,8 @@ namespace util {
 
 template <class T>
 void hash_combine(std::size_t& seed, const T& v) noexcept {
-    seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    // seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= std::hash<T>()(v);
 }
 
 template <class... Args>
