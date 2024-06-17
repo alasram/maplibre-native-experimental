@@ -5,6 +5,7 @@
 #include <mbgl/tile/tile_loader.hpp>
 #include <mbgl/util/async_request.hpp>
 #include <mbgl/util/tileset.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #include <cassert>
 
@@ -29,6 +30,7 @@ TileLoader<T>::TileLoader(T& tile_,
                               tileset.scheme,
                               Resource::LoadingMethod::CacheOnly)),
       fileSource(parameters.fileSource) {
+    MLN_TRACE_FUNC();
     assert(!request);
 
     shared = std::make_shared<Shared>();
@@ -67,6 +69,7 @@ TileLoader<T>::~TileLoader() {
 
 template <typename T>
 void TileLoader<T>::setNecessity(TileNecessity newNecessity) {
+    MLN_TRACE_FUNC();
     if (newNecessity != necessity) {
         necessity = newNecessity;
         if (necessity == TileNecessity::Required) {
@@ -79,6 +82,7 @@ void TileLoader<T>::setNecessity(TileNecessity newNecessity) {
 
 template <typename T>
 void TileLoader<T>::setUpdateParameters(const TileUpdateParameters& params) {
+    MLN_TRACE_FUNC();
     if (updateParameters != params) {
         updateParameters = params;
         if (hasPendingNetworkRequest()) {
@@ -91,6 +95,7 @@ void TileLoader<T>::setUpdateParameters(const TileUpdateParameters& params) {
 
 template <typename T>
 void TileLoader<T>::loadFromCache() {
+    MLN_TRACE_FUNC();
     assert(!request);
     if (!fileSource) {
         tile.setError(getCantLoadTileError());
@@ -133,6 +138,7 @@ void TileLoader<T>::loadFromCache() {
 
 template <typename T>
 void TileLoader<T>::makeRequired() {
+    MLN_TRACE_FUNC();
     if (!request) {
         loadFromNetwork();
     }
@@ -140,6 +146,7 @@ void TileLoader<T>::makeRequired() {
 
 template <typename T>
 void TileLoader<T>::makeOptional() {
+    MLN_TRACE_FUNC();
     if (hasPendingNetworkRequest()) {
         // Abort the current request, but only when we know that we're
         // specifically querying for a network resource only.
@@ -149,6 +156,7 @@ void TileLoader<T>::makeOptional() {
 
 template <typename T>
 void TileLoader<T>::loadedData(const Response& res) {
+    MLN_TRACE_FUNC();
     if (res.error && res.error->reason != Response::Error::Reason::NotFound) {
         tile.setError(std::make_exception_ptr(std::runtime_error(res.error->message)));
     } else if (res.notModified) {
@@ -167,6 +175,7 @@ void TileLoader<T>::loadedData(const Response& res) {
 
 template <typename T>
 void TileLoader<T>::loadFromNetwork() {
+    MLN_TRACE_FUNC();
     assert(!request);
     if (!fileSource) {
         tile.setError(getCantLoadTileError());

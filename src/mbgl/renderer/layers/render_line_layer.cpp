@@ -74,6 +74,7 @@ void RenderLineLayer::transition(const TransitionParameters& parameters) {
 }
 
 void RenderLineLayer::evaluate(const PropertyEvaluationParameters& parameters) {
+    MLN_TRACE_FUNC();
     const auto previousProperties = staticImmutableCast<LineLayerProperties>(evaluatedProperties);
     auto properties = makeMutable<LineLayerProperties>(staticImmutableCast<LineLayer::Impl>(baseImpl),
                                                        parameters.getCrossfadeParameters(),
@@ -107,6 +108,7 @@ bool RenderLineLayer::hasCrossfade() const {
 }
 
 void RenderLineLayer::prepare(const LayerPrepareParameters& params) {
+    MLN_TRACE_FUNC();
     RenderLayer::prepare(params);
     for (const RenderTile& tile : *renderTiles) {
         const LayerRenderData* renderData = tile.getLayerRenderData(*baseImpl);
@@ -126,12 +128,14 @@ void RenderLineLayer::prepare(const LayerPrepareParameters& params) {
 
 #if MLN_LEGACY_RENDERER
 void RenderLineLayer::upload(gfx::UploadPass& uploadPass) {
+    MLN_TRACE_FUNC();
     if (!unevaluated.get<LineGradient>().getValue().isUndefined() && !colorRampTexture) {
         colorRampTexture = uploadPass.createTexture(*colorRamp);
     }
 }
 
 void RenderLineLayer::render(PaintParameters& parameters) {
+    MLN_TRACE_FUNC();
     assert(renderTiles);
     if (parameters.pass == RenderPass::Opaque) {
         return;
@@ -255,6 +259,7 @@ void RenderLineLayer::render(PaintParameters& parameters) {
 namespace {
 
 GeometryCollection offsetLine(const GeometryCollection& rings, double offset) {
+    MLN_TRACE_FUNC();
     assert(offset != 0.0f);
     assert(!rings.empty());
 
@@ -294,6 +299,7 @@ bool RenderLineLayer::queryIntersectsFeature(const GeometryCoordinates& queryGeo
                                              const float pixelsToTileUnits,
                                              const mat4&,
                                              const FeatureState& featureState) const {
+    MLN_TRACE_FUNC();
     const auto& evaluated = static_cast<const LineLayerProperties&>(*evaluatedProperties).evaluated;
     // Translate query geometry
     auto translatedQueryGeometry = FeatureIndex::translateQueryGeometry(queryGeometry,
@@ -320,6 +326,7 @@ bool RenderLineLayer::queryIntersectsFeature(const GeometryCoordinates& queryGeo
 }
 
 void RenderLineLayer::updateColorRamp() {
+    MLN_TRACE_FUNC();
     const style::ColorRampPropertyValue colorValue = unevaluated.get<LineGradient>().getValue();
     if (!colorRamp || !applyColorRamp(colorValue, *colorRamp)) {
         return;
@@ -343,6 +350,7 @@ void RenderLineLayer::updateColorRamp() {
 float RenderLineLayer::getLineWidth(const GeometryTileFeature& feature,
                                     const float zoom,
                                     const FeatureState& featureState) const {
+    MLN_TRACE_FUNC();
     const auto& evaluated = static_cast<const LineLayerProperties&>(*evaluatedProperties).evaluated;
     float lineWidth = evaluated.get<style::LineWidth>().evaluate(
         feature, zoom, featureState, style::LineWidth::defaultValue());

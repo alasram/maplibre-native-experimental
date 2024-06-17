@@ -21,6 +21,7 @@
 #include <mbgl/tile/tile.hpp>
 #include <mbgl/util/convert.hpp>
 #include <mbgl/util/math.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #if MLN_DRAWABLE_RENDERER
 #include <mbgl/gfx/drawable_atlases_tweaker.hpp>
@@ -56,6 +57,7 @@ constexpr std::string_view CollisionCircleShaderName = "CollisionCircleShader";
 
 style::SymbolPropertyValues iconPropertyValues(const style::SymbolPaintProperties::PossiblyEvaluated& evaluated_,
                                                const style::SymbolLayoutProperties::PossiblyEvaluated& layout_) {
+    MLN_TRACE_FUNC();
     return style::SymbolPropertyValues{layout_.get<style::IconPitchAlignment>(),
                                        layout_.get<style::IconRotationAlignment>(),
                                        layout_.get<style::IconKeepUpright>(),
@@ -68,6 +70,7 @@ style::SymbolPropertyValues iconPropertyValues(const style::SymbolPaintPropertie
 
 style::SymbolPropertyValues textPropertyValues(const style::SymbolPaintProperties::PossiblyEvaluated& evaluated_,
                                                const style::SymbolLayoutProperties::PossiblyEvaluated& layout_) {
+    MLN_TRACE_FUNC();
     return style::SymbolPropertyValues{layout_.get<style::TextPitchAlignment>(),
                                        layout_.get<style::TextRotationAlignment>(),
                                        layout_.get<style::TextKeepUpright>(),
@@ -152,6 +155,7 @@ void drawIcon(const RenderSymbolLayer::Programs& programs,
               const SymbolBucket::PaintProperties& bucketPaintProperties,
               const PaintParameters& parameters,
               const bool sdfIcons) {
+    MLN_TRACE_FUNC();
     auto& bucket = static_cast<SymbolBucket&>(*renderData.bucket);
     const auto& evaluated = getEvaluated<SymbolLayerProperties>(renderData.layerProperties);
     const auto& layout = *bucket.layout;
@@ -244,6 +248,7 @@ void drawText(const RenderSymbolLayer::Programs& programs,
               SegmentsWrapper textSegments,
               const SymbolBucket::PaintProperties& bucketPaintProperties,
               const PaintParameters& parameters) {
+    MLN_TRACE_FUNC();
     const auto& bucket = static_cast<SymbolBucket&>(*renderData.bucket);
     const auto& evaluated = getEvaluated<SymbolLayerProperties>(renderData.layerProperties);
     const auto& layout = *bucket.layout;
@@ -365,12 +370,14 @@ RenderSymbolLayer::RenderSymbolLayer(Immutable<style::SymbolLayer::Impl> _impl)
 RenderSymbolLayer::~RenderSymbolLayer() = default;
 
 void RenderSymbolLayer::transition(const TransitionParameters& parameters) {
+    MLN_TRACE_FUNC();
     unevaluated = impl_cast(baseImpl).paint.transitioned(parameters, std::move(unevaluated));
     hasFormatSectionOverrides = SymbolLayerPaintPropertyOverrides::hasOverrides(
         impl_cast(baseImpl).layout.get<TextField>());
 }
 
 void RenderSymbolLayer::evaluate(const PropertyEvaluationParameters& parameters) {
+    MLN_TRACE_FUNC();
     const auto previousProperties = staticImmutableCast<SymbolLayerProperties>(evaluatedProperties);
     auto properties = makeMutable<SymbolLayerProperties>(
         staticImmutableCast<SymbolLayer::Impl>(baseImpl),
@@ -415,6 +422,7 @@ bool RenderSymbolLayer::hasCrossfade() const {
 #if MLN_LEGACY_RENDERER
 
 void RenderSymbolLayer::render(PaintParameters& parameters) {
+    MLN_TRACE_FUNC();
     assert(renderTiles);
     if (parameters.pass == RenderPass::Opaque) {
         return;
@@ -663,6 +671,7 @@ void RenderSymbolLayer::render(PaintParameters& parameters) {
 // static
 style::IconPaintProperties::PossiblyEvaluated RenderSymbolLayer::iconPaintProperties(
     const style::SymbolPaintProperties::PossiblyEvaluated& evaluated_) {
+    MLN_TRACE_FUNC();
     return style::IconPaintProperties::PossiblyEvaluated{evaluated_.get<style::IconOpacity>(),
                                                          evaluated_.get<style::IconColor>(),
                                                          evaluated_.get<style::IconHaloColor>(),
@@ -675,6 +684,7 @@ style::IconPaintProperties::PossiblyEvaluated RenderSymbolLayer::iconPaintProper
 // static
 style::TextPaintProperties::PossiblyEvaluated RenderSymbolLayer::textPaintProperties(
     const style::SymbolPaintProperties::PossiblyEvaluated& evaluated_) {
+    MLN_TRACE_FUNC();
     return style::TextPaintProperties::PossiblyEvaluated{evaluated_.get<style::TextOpacity>(),
                                                          evaluated_.get<style::TextColor>(),
                                                          evaluated_.get<style::TextHaloColor>(),
@@ -685,6 +695,7 @@ style::TextPaintProperties::PossiblyEvaluated RenderSymbolLayer::textPaintProper
 }
 
 void RenderSymbolLayer::prepare(const LayerPrepareParameters& params) {
+    MLN_TRACE_FUNC();
     renderTiles = params.source->getRenderTilesSortedByYPosition();
 
 #if MLN_DRAWABLE_RENDERER
@@ -737,6 +748,7 @@ auto getInterpFactor(const SymbolBucket::PaintProperties& paintProps, bool isTex
 }
 
 SymbolInterpolateUBO buildInterpUBO(const SymbolBucket::PaintProperties& paint, const bool t, const float z) {
+    MLN_TRACE_FUNC();
     return {/* .fill_color_t = */ getInterpFactor<TextColor, IconColor, 0>(paint, t, z),
             /* .halo_color_t = */ getInterpFactor<TextHaloColor, IconHaloColor, 0>(paint, t, z),
             /* .opacity_t = */ getInterpFactor<TextOpacity, IconOpacity, 0>(paint, t, z),
@@ -750,6 +762,7 @@ SymbolInterpolateUBO buildInterpUBO(const SymbolBucket::PaintProperties& paint, 
 SymbolTilePropsUBO buildTileUBO(const SymbolBucket& bucket,
                                 const gfx::SymbolDrawableData& drawData,
                                 const float currentZoom) {
+    MLN_TRACE_FUNC();
     const bool isText = (drawData.symbolType == SymbolType::Text);
     const ZoomEvaluatedSize size = isText ? bucket.textSizeBinder->evaluateForZoom(currentZoom)
                                           : bucket.iconSizeBinder->evaluateForZoom(currentZoom);
@@ -773,6 +786,7 @@ void updateTileAttributes(const SymbolBucket::Buffer& buffer,
                           const SymbolPaintProperties::PossiblyEvaluated& evaluated,
                           gfx::VertexAttributeArray& attribs,
                           StringIDSetsPair* propertiesAsUniforms) {
+    MLN_TRACE_FUNC();
     if (const auto& attr = attribs.set(idSymbolPosOffsetVertexAttribute)) {
         attr->setSharedRawData(buffer.sharedVertices,
                                offsetof(SymbolLayoutVertex, a1),
@@ -829,6 +843,7 @@ void updateTileDrawable(gfx::Drawable& drawable,
                         const TransformState& state,
                         gfx::UniformBufferPtr& textInterpUBO,
                         gfx::UniformBufferPtr& iconInterpUBO) {
+    MLN_TRACE_FUNC();
     if (!drawable.getData()) {
         return;
     }
@@ -876,6 +891,7 @@ void updateTileDrawable(gfx::Drawable& drawable,
 
 gfx::VertexAttributeArrayPtr getCollisionVertexAttributes(gfx::Context& context,
                                                           const SymbolBucket::CollisionBuffer& buffer) {
+    MLN_TRACE_FUNC();
     auto vertexAttrs = context.createVertexAttributeArray();
     using LayoutVertex = gfx::Vertex<CollisionBoxLayoutAttributes>;
 
@@ -924,6 +940,7 @@ gfx::VertexAttributeArrayPtr getCollisionVertexAttributes(gfx::Context& context,
 } // namespace
 
 void RenderSymbolLayer::markLayerRenderable(bool willRender, UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     RenderLayer::markLayerRenderable(willRender, changes);
     if (collisionTileLayerGroup) {
         activateLayerGroup(collisionTileLayerGroup, willRender, changes);
@@ -931,6 +948,7 @@ void RenderSymbolLayer::markLayerRenderable(bool willRender, UniqueChangeRequest
 }
 
 void RenderSymbolLayer::layerRemoved(UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     RenderLayer::layerRemoved(changes);
     if (collisionTileLayerGroup) {
         activateLayerGroup(collisionTileLayerGroup, false, changes);
@@ -938,12 +956,14 @@ void RenderSymbolLayer::layerRemoved(UniqueChangeRequestVec& changes) {
 }
 
 void RenderSymbolLayer::layerIndexChanged(int32_t newLayerIndex, UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     RenderLayer::layerIndexChanged(newLayerIndex, changes);
 
     changeLayerIndex(collisionTileLayerGroup, newLayerIndex, changes);
 }
 
 std::size_t RenderSymbolLayer::removeTile(RenderPass renderPass, const OverscaledTileID& tileID) {
+    MLN_TRACE_FUNC();
     const auto oldValue = stats.drawablesRemoved;
     if (const auto tileGroup = static_cast<TileLayerGroup*>(layerGroup.get())) {
         stats.drawablesRemoved += tileGroup->removeDrawables(renderPass, tileID).size();
@@ -955,6 +975,7 @@ std::size_t RenderSymbolLayer::removeTile(RenderPass renderPass, const Overscale
 }
 
 std::size_t RenderSymbolLayer::removeAllDrawables() {
+    MLN_TRACE_FUNC();
     const auto oldValue = stats.drawablesRemoved;
     if (layerGroup) {
         stats.drawablesRemoved += layerGroup->getDrawableCount();
@@ -973,6 +994,7 @@ void RenderSymbolLayer::update(gfx::ShaderRegistry& shaders,
                                const std::shared_ptr<UpdateParameters>&,
                                const RenderTree& /*renderTree*/,
                                UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     if (!renderTiles || renderTiles->empty() || passes == RenderPass::None) {
         removeAllDrawables();
         return;

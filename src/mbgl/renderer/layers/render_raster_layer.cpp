@@ -12,6 +12,7 @@
 #include <mbgl/math/angles.hpp>
 #include <mbgl/style/layers/raster_layer_impl.hpp>
 #include <mbgl/util/logging.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 #if MLN_DRAWABLE_RENDERER
 #include <mbgl/renderer/layers/raster_layer_tweaker.hpp>
@@ -50,6 +51,7 @@ void RenderRasterLayer::transition(const TransitionParameters& parameters) {
 }
 
 void RenderRasterLayer::evaluate(const PropertyEvaluationParameters& parameters) {
+    MLN_TRACE_FUNC();
     const auto previousProperties = staticImmutableCast<RasterLayerProperties>(evaluatedProperties);
     auto properties = makeMutable<RasterLayerProperties>(
         staticImmutableCast<RasterLayer::Impl>(baseImpl),
@@ -102,6 +104,7 @@ static std::array<float, 3> spinWeights(float spin) {
 #endif
 
 void RenderRasterLayer::prepare(const LayerPrepareParameters& params) {
+    MLN_TRACE_FUNC();
     renderTiles = params.source->getRenderTiles();
     imageData = params.source->getImageRenderData();
     // It is possible image data is not available until the source loads it.
@@ -114,6 +117,7 @@ void RenderRasterLayer::prepare(const LayerPrepareParameters& params) {
 
 #if MLN_LEGACY_RENDERER
 void RenderRasterLayer::render(PaintParameters& parameters) {
+    MLN_TRACE_FUNC();
     if (parameters.pass != RenderPass::Translucent || (!renderTiles && !imageData)) {
         return;
     }
@@ -232,6 +236,7 @@ void RenderRasterLayer::render(PaintParameters& parameters) {
 
 #if MLN_DRAWABLE_RENDERER
 void RenderRasterLayer::markLayerRenderable(bool willRender, UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     RenderLayer::markLayerRenderable(willRender, changes);
     if (imageLayerGroup) {
         activateLayerGroup(imageLayerGroup, willRender, changes);
@@ -239,6 +244,7 @@ void RenderRasterLayer::markLayerRenderable(bool willRender, UniqueChangeRequest
 }
 
 void RenderRasterLayer::layerRemoved(UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     RenderLayer::layerRemoved(changes);
     if (imageLayerGroup) {
         activateLayerGroup(imageLayerGroup, false, changes);
@@ -246,6 +252,7 @@ void RenderRasterLayer::layerRemoved(UniqueChangeRequestVec& changes) {
 }
 
 void RenderRasterLayer::layerIndexChanged(int32_t newLayerIndex, UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     RenderLayer::layerIndexChanged(newLayerIndex, changes);
 
     changeLayerIndex(imageLayerGroup, newLayerIndex, changes);
@@ -257,6 +264,7 @@ void RenderRasterLayer::update(gfx::ShaderRegistry& shaders,
                                const std::shared_ptr<UpdateParameters>&,
                                [[maybe_unused]] const RenderTree& renderTree,
                                [[maybe_unused]] UniqueChangeRequestVec& changes) {
+    MLN_TRACE_FUNC();
     if ((!renderTiles || renderTiles->empty()) && !imageData) {
         if (layerGroup) {
             stats.drawablesRemoved += layerGroup->clearDrawables();
