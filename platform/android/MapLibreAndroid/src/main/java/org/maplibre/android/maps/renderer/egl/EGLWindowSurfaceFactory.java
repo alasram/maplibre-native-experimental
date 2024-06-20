@@ -11,9 +11,53 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.egl.EGLSurface;
 
+import java.io.File;
+import java.lang.ProcessBuilder;
+
 public class EGLWindowSurfaceFactory implements GLSurfaceView.EGLWindowSurfaceFactory {
+
+
+  public static class MemInfoLoggerJ {
+
+    private String msg;
+
+    private void runCommand(String cmd) {
+      try {
+      Runtime runtime = Runtime.getRuntime();
+      runtime.exec(cmd);
+      Log.e("EGLWindowSurfaceFactory", cmd);
+      } catch (Exception exception) {
+        Log.e("EGLWindowSurfaceFactory", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE: " + cmd, exception);
+      }
+    }
+
+    private synchronized void print(Boolean begin) {
+
+        String text = "######################################################## ";
+        text += begin ? "BEGIN " : "END ";
+        text += msg + " ";
+
+        String cmd = "echo \"" + text + "\" >> /data/testdir/mem_info.txt";
+        runCommand(cmd);
+        runCommand("dumpsys meminfo com.rivian.rivianivinavigation >> /data/testdir/mem_info.txt");
+    }
+
+    public MemInfoLoggerJ(String s){
+        msg = s;
+        print(true);
+    }
+
+    public void end() {
+        print(false);
+    }
+
+  };
+
+
   public EGLSurface createWindowSurface(@NonNull EGL10 egl, @Nullable EGLDisplay display, @Nullable EGLConfig config,
                                         @Nullable Object nativeWindow) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("EGLWindowSurfaceFactory::createWindowSurface");
+
     EGLSurface result = null;
     if (display != null && config != null && nativeWindow != null) {
       try {
@@ -28,11 +72,17 @@ public class EGLWindowSurfaceFactory implements GLSurfaceView.EGLWindowSurfaceFa
         Log.e("EGLWindowSurfaceFactory", "eglCreateWindowSurface", exception);
       }
     }
+
+    logger.end();
     return result;
   }
 
   public void destroySurface(EGL10 egl, EGLDisplay display,
                              EGLSurface surface) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("EGLWindowSurfaceFactory::destroySurface");
+
     egl.eglDestroySurface(display, surface);
+
+    logger.end();
   }
 }

@@ -7,7 +7,36 @@
 #include <mbgl/util/logging.hpp>
 #include <mbgl/util/traits.hpp>
 
+std::mutex& getSharedGlobalMutex();
+
 namespace mbgl {
+
+struct MemInfoLogger4 {
+    std::string msg;
+
+    std::string toMB(size_t x) { return std::to_string(x / 1024 / 1024); }
+
+    void print(bool begin) {
+        std::mutex& mux = getSharedGlobalMutex();
+        const std::lock_guard<std::mutex> lock(mux);
+
+        std::string text = "######################################################## ";
+        text += begin ? "BEGIN " : "END ";
+        text += msg + " ";
+
+        std::string cmd = "echo \"" + text + "\" >> /data/testdir/mem_info.txt";
+        std::system(cmd.c_str());
+        std::system("dumpsys meminfo com.rivian.rivianivinavigation >> /data/testdir/mem_info.txt");
+
+        // Log::Error(Event::JNI, cmd);
+    }
+
+    MemInfoLogger4(std::string const& s)
+        : msg(s) {
+        print(true);
+    }
+    ~MemInfoLogger4() { print(false); }
+};
 
 #if !defined(NDEBUG)
 namespace {
@@ -54,6 +83,7 @@ Map::Impl::Impl(RendererFrontend& frontend_,
       fileSource(std::move(fileSource_)),
       style(std::make_unique<style::Style>(fileSource, pixelRatio)),
       annotationManager(*style) {
+    MemInfoLogger4 logger("Map::Impl::Impl");
     transform.setNorthOrientation(mapOptions.northOrientation());
     style->impl->setObserver(this);
     rendererFrontend.setObserver(*this);
@@ -61,6 +91,7 @@ Map::Impl::Impl(RendererFrontend& frontend_,
 }
 
 Map::Impl::~Impl() {
+    MemInfoLogger4 logger("Map::Impl::~Impl");
     // Explicitly reset the RendererFrontend first to ensure it releases
     // All shared resources (AnnotationManager)
     rendererFrontend.reset();
@@ -69,10 +100,12 @@ Map::Impl::~Impl() {
 // MARK: - Map::Impl StyleObserver
 
 void Map::Impl::onSourceChanged(style::Source& source) {
+    MemInfoLogger4 logger("Map::Impl::onSourceChanged");
     observer.onSourceChanged(source);
 }
 
 void Map::Impl::onUpdate() {
+    MemInfoLogger4 logger("Map::Impl::onUpdate");
     // Don't load/render anything in still mode until explicitly requested.
     if (mode != MapMode::Continuous && !stillImageRequest) {
         return;
@@ -105,12 +138,14 @@ void Map::Impl::onUpdate() {
 }
 
 void Map::Impl::onStyleLoading() {
+    MemInfoLogger4 logger("Map::Impl::onStyleLoading");
     loading = true;
     rendererFullyLoaded = false;
     observer.onWillStartLoadingMap();
 }
 
 void Map::Impl::onStyleLoaded() {
+    MemInfoLogger4 logger("Map::Impl::onStyleLoaded");
     if (!cameraMutated) {
         jumpTo(style->getDefaultCamera());
     }
@@ -125,6 +160,7 @@ void Map::Impl::onStyleLoaded() {
 }
 
 void Map::Impl::onStyleError(std::exception_ptr error) {
+    MemInfoLogger4 logger("Map::Impl::onStyleError");
     MapLoadError type;
     std::string description;
 
@@ -161,6 +197,7 @@ void Map::Impl::onResourceError(std::exception_ptr error) {
 }
 
 void Map::Impl::onWillStartRenderingFrame() {
+    MemInfoLogger4 logger("Map::Impl::onWillStartRenderingFrame");
     if (mode == MapMode::Continuous) {
         observer.onWillStartRenderingFrame();
     }
@@ -171,6 +208,7 @@ void Map::Impl::onDidFinishRenderingFrame(RenderMode renderMode,
                                           bool placemenChanged,
                                           double frameEncodingTime,
                                           double frameRenderingTime) {
+    MemInfoLogger4 logger("Map::Impl::onDidFinishRenderingFrame");
     rendererFullyLoaded = renderMode == RenderMode::Full;
 
     if (mode == MapMode::Continuous) {
@@ -192,12 +230,14 @@ void Map::Impl::onDidFinishRenderingFrame(RenderMode renderMode,
 }
 
 void Map::Impl::onWillStartRenderingMap() {
+    MemInfoLogger4 logger("Map::Impl::onWillStartRenderingMap");
     if (mode == MapMode::Continuous) {
         observer.onWillStartRenderingMap();
     }
 }
 
 void Map::Impl::onDidFinishRenderingMap() {
+    MemInfoLogger4 logger("Map::Impl::onDidFinishRenderingMap");
     if (mode == MapMode::Continuous && loading) {
         observer.onDidFinishRenderingMap(MapObserver::RenderMode::Full);
         if (loading) {
@@ -208,12 +248,14 @@ void Map::Impl::onDidFinishRenderingMap() {
 };
 
 void Map::Impl::jumpTo(const CameraOptions& camera) {
+    MemInfoLogger4 logger("Map::Impl::jumpTo");
     cameraMutated = true;
     transform.jumpTo(camera);
     onUpdate();
 }
 
 void Map::Impl::onStyleImageMissing(const std::string& id, const std::function<void()>& done) {
+    MemInfoLogger4 logger("Map::Impl::onStyleImageMissing");
     if (!style->getImage(id)) observer.onStyleImageMissing(id);
 
     done();
@@ -221,6 +263,7 @@ void Map::Impl::onStyleImageMissing(const std::string& id, const std::function<v
 }
 
 void Map::Impl::onRemoveUnusedStyleImages(const std::vector<std::string>& unusedImageIDs) {
+    MemInfoLogger4 logger("Map::Impl::onRemoveUnusedStyleImages");
     for (const auto& unusedImageID : unusedImageIDs) {
         if (observer.onCanRemoveUnusedStyleImage(unusedImageID)) {
             style->removeImage(unusedImageID);
@@ -229,6 +272,7 @@ void Map::Impl::onRemoveUnusedStyleImages(const std::vector<std::string>& unused
 }
 
 void Map::Impl::onRegisterShaders(gfx::ShaderRegistry& registry) {
+    MemInfoLogger4 logger("Map::Impl::onRegisterShaders");
     observer.onRegisterShaders(registry);
 }
 

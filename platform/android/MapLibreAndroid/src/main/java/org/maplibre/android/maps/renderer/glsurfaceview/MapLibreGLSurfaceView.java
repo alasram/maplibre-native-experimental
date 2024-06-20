@@ -26,11 +26,85 @@ import javax.microedition.khronos.opengles.GL10;
 
 import static android.opengl.GLSurfaceView.RENDERMODE_CONTINUOUSLY;
 
+import android.util.Log;
+import java.io.File;
+import java.lang.ProcessBuilder;
+
+import android.graphics.Rect;
+
 /**
  * {@link GLSurfaceView} extension that notifies a listener when the view is detached from window,
  * which is the point of destruction of the GL thread.
  */
 public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.Callback2 {
+
+
+public static class MemInfoLoggerJ {
+
+    private String msg;
+
+    private void runCommand(String cmd) {
+      try {
+      Runtime runtime = Runtime.getRuntime();
+      runtime.exec(cmd);
+      Log.e("NS_DBG", cmd);
+      } catch (Exception exception) {
+        // Log.e(TAG, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE: " + cmd, exception);
+      }
+    }
+
+    private void runEcho(String cmd) {
+      try {
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/echo", cmd);
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        Log.e("NS_DBG", cmd);
+        p.waitFor();
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE echo: " + cmd, exception);
+      }
+    }
+
+    private void runDumpsys() {
+      try {
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/dumpsys", "meminfo", "com.rivian.rivianivinavigation");
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        p.waitFor();
+        // Log.e("DefaultContextFactory", cmd);
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE dumpsys: " + msg, exception);
+      }
+    }
+
+    private synchronized void print(Boolean begin) {
+
+        String text = "######################################################## ";
+        text += begin ? "BEGIN " : "END ";
+        text += msg + " ";
+
+        runEcho(text);
+        runDumpsys();
+
+        // String cmd = "echo \"" + text + "\" >> /data/testdir/mem_info.txt";
+        // runCommand(cmd);
+        // runCommand("dumpsys meminfo com.rivian.rivianivinavigation >> /data/testdir/mem_info.txt");
+    }
+
+    public MemInfoLoggerJ(String s){
+        msg = s;
+        print(true);
+    }
+
+    public void end() {
+        print(false);
+    }
+
+  };
 
   private static final String TAG = "GLSurfaceView";
   private static final GLThreadManager glThreadManager = new GLThreadManager();
@@ -65,14 +139,19 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
   }
 
   private void init() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::init");
+
     // Install a SurfaceHolder.Callback so we get notified when the
     // underlying surface is created and destroyed
     SurfaceHolder holder = getHolder();
     holder.addCallback(this);
+
+    logger.end();
   }
 
   @Override
   protected void finalize() throws Throwable {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::finalize");
     try {
       if (glThread != null) {
         // GLThread may still be running if this view was never
@@ -82,6 +161,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     } finally {
       super.finalize();
     }
+    logger.end();
   }
 
   /**
@@ -152,6 +232,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * @param renderer the renderer to use to perform OpenGL drawing.
    */
   public void setRenderer(GLSurfaceView.Renderer renderer) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::setRenderer");
+
     checkRenderThreadState();
     if (eglConfigChooser == null) {
       throw new IllegalStateException("No eglConfigChooser provided");
@@ -165,6 +247,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     this.renderer = renderer;
     glThread = new GLThread(viewWeakReference);
     glThread.start();
+
+    logger.end();
   }
 
   /**
@@ -174,8 +258,12 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * is called.
    */
   public void setEGLContextFactory(GLSurfaceView.EGLContextFactory factory) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::setEGLContextFactory");
+
     checkRenderThreadState();
     eglContextFactory = factory;
+
+    logger.end();
   }
 
   /**
@@ -185,8 +273,12 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * is called.
    */
   public void setEGLWindowSurfaceFactory(GLSurfaceView.EGLWindowSurfaceFactory factory) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::setEGLWindowSurfaceFactory");
+
     checkRenderThreadState();
     eglWindowSurfaceFactory = factory;
+
+    logger.end();
   }
 
   /**
@@ -196,8 +288,12 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * is called.
    */
   public void setEGLConfigChooser(GLSurfaceView.EGLConfigChooser configChooser) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::setEGLConfigChooser");
+
     checkRenderThreadState();
     eglConfigChooser = configChooser;
+
+    logger.end();
   }
 
   /**
@@ -215,7 +311,11 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * @param renderMode one of the RENDERMODE_X constants
    */
   public void setRenderMode(int renderMode) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::setRenderMode");
+
     glThread.setRenderMode(renderMode);
+
+    logger.end();
   }
 
   /**
@@ -236,7 +336,11 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * from any thread. Must not be called before a renderer has been set.
    */
   public void requestRender() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::requestRender");
+
     glThread.requestRender();
+
+    logger.end();
   }
 
   /**
@@ -244,7 +348,14 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * not normally called or subclassed by clients of GLSurfaceView.
    */
   public void surfaceCreated(SurfaceHolder holder) {
+    Log.e("NS_DBG", "###################################### surfaceCreated");
+    printSurfInfo(holder);
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::surfaceCreated");
+
     glThread.surfaceCreated();
+
+    logger.end();
   }
 
   /**
@@ -252,8 +363,15 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * not normally called or subclassed by clients of GLSurfaceView.
    */
   public void surfaceDestroyed(SurfaceHolder holder) {
+    Log.e("NS_DBG", "###################################### surfaceDestroyed");
+    printSurfInfo(holder);
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::surfaceDestroyed");
+    
     // Surface will be destroyed when we return
     glThread.surfaceDestroyed();
+
+    logger.end();
   }
 
   /**
@@ -261,19 +379,33 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * not normally called or subclassed by clients of GLSurfaceView.
    */
   public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+
+    Log.e("NS_DBG", "###################################### surfaceChanged " + w + " x " + h + " format: " + format);
+    printSurfInfo(holder);
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::surfaceChanged");
+
     glThread.onWindowResize(w, h);
+
+    logger.end();
   }
 
   /**
    * This method is part of the SurfaceHolder.Callback2 interface, and is
    * not normally called or subclassed by clients of GLSurfaceView.
    */
+  /*
   @Override
   public void surfaceRedrawNeededAsync(SurfaceHolder holder, Runnable finishDrawing) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::surfaceRedrawNeededAsync");
+
     if (glThread != null) {
       glThread.requestRenderAndNotify(finishDrawing);
     }
+
+    logger.end();
   }
+  */
 
   /**
    * This method is part of the SurfaceHolder.Callback2 interface, and is
@@ -284,6 +416,21 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
   public void surfaceRedrawNeeded(SurfaceHolder holder) {
     // Since we are part of the framework we know only surfaceRedrawNeededAsync
     // will be called.
+
+    SurfaceHolder old_holder = getHolder();
+
+    Log.e("NS_DBG", "###################################### surfaceRedrawNeeded old_holder");
+    printSurfInfo(old_holder);
+    Log.e("NS_DBG", "###################################### surfaceRedrawNeeded holder");
+    printSurfInfo(holder);
+
+
+  }
+
+  private void printSurfInfo(SurfaceHolder holder) {
+    Rect rect =  holder.getSurfaceFrame();
+    String msg = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@############################&&&&&&&&&&&&&&& rect: " + rect.top + ", " + rect.bottom + ", " + rect.left + ", " + rect.right + " surface: " + holder.getSurface().toString();
+    Log.e("NS_DBG", msg);
   }
 
   /**
@@ -293,7 +440,9 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * Must not be called before a renderer has been set.
    */
   public void onPause() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::onPause");
     glThread.onPause();
+    logger.end();
   }
 
   /**
@@ -303,7 +452,10 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * Must not be called before a renderer has been set.
    */
   public void onResume() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::onResume");
+
     glThread.onResume();
+    logger.end();
   }
 
   /**
@@ -314,7 +466,10 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * @param r the runnable to be run on the GL rendering thread.
    */
   public void queueEvent(Runnable r) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::queueEvent");
+
     glThread.queueEvent(r);
+    logger.end();
   }
 
   /**
@@ -333,6 +488,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    */
   @Override
   protected void onAttachedToWindow() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::onAttachedToWindow");
+
     super.onAttachedToWindow();
     if (detached && (renderer != null)) {
       int renderMode = RENDERMODE_CONTINUOUSLY;
@@ -346,10 +503,14 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
       glThread.start();
     }
     detached = false;
+
+    logger.end();
   }
 
   @Override
   protected void onDetachedFromWindow() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreGLSurfaceView::onDetachedFromWindow");
+
     if (detachedListener != null) {
       detachedListener.onGLSurfaceViewDetached();
     }
@@ -358,6 +519,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
     detached = true;
     super.onDetachedFromWindow();
+
+    logger.end();
   }
 
   /**
@@ -372,6 +535,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
      * Initialize EGL for a given configuration spec.
      */
     public void start() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("EglHelper::start");
+
       try {
         /*
          * Get an EGL instance
@@ -422,6 +587,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
         Log.e(TAG, "createContext failed: ", exception);
       }
       mEglSurface = null;
+
+      logger.end();
     }
 
     /**
@@ -431,6 +598,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
      * @return true if the surface was created successfully.
      */
     boolean createSurface() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("EglHelper::createSurface");
+
       /*
        * Check preconditions.
        */
@@ -469,6 +638,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
         if (error == EGL10.EGL_BAD_NATIVE_WINDOW) {
           Log.e(TAG, "createWindowSurface returned EGL_BAD_NATIVE_WINDOW.");
         }
+        logger.end();
         return false;
       }
 
@@ -482,8 +652,11 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
          * SurfaceView surface has been destroyed.
          */
         logEglErrorAsWarning(TAG, "eglMakeCurrent", mEgl.eglGetError());
+        logger.end();
         return false;
       }
+
+      logger.end();
 
       return true;
     }
@@ -492,6 +665,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
      * Create a GL object for the current EGL context.
      */
     GL createGL() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("EglHelper::createGL");
+
       return mEglContext.getGL();
     }
 
@@ -501,6 +676,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
      * @return the EGL error code from eglSwapBuffers.
      */
     public int swap() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("EglHelper::swap");
+
       if (!mEgl.eglSwapBuffers(mEglDisplay, mEglSurface)) {
         return mEgl.eglGetError();
       }
@@ -508,7 +685,10 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     void destroySurface() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("EglHelper::destroySurface");
       destroySurfaceImp();
+
+      logger.end();
     }
 
     private void destroySurfaceImp() {
@@ -525,6 +705,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void finish() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("EglHelper::finish");
+
       if (mEglContext != null) {
         MapLibreGLSurfaceView view = mGLSurfaceViewWeakRef.get();
         if (view != null) {
@@ -536,6 +718,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
         mEgl.eglTerminate(mEglDisplay);
         mEglDisplay = null;
       }
+
+      logger.end();
     }
 
     static void logEglErrorAsWarning(String tag, String function, int error) {
@@ -566,16 +750,23 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
   static class GLThread extends Thread {
     GLThread(WeakReference<MapLibreGLSurfaceView> glSurfaceViewWeakRef) {
       super();
+
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::GLThread");
+
       width = 0;
       height = 0;
       requestRender = true;
       renderMode = RENDERMODE_CONTINUOUSLY;
       wantRenderNotification = false;
       mGLSurfaceViewWeakRef = glSurfaceViewWeakRef;
+
+      logger.end();
     }
 
     @Override
     public void run() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::run");
+
       setName("GLThread " + getId());
 
       try {
@@ -585,6 +776,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
       } finally {
         glThreadManager.threadExiting(this);
       }
+
+      logger.end();
     }
 
     /*
@@ -592,6 +785,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
      * synchronized(sGLThreadManager) block.
      */
     private void stopEglSurfaceLocked() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::stopEglSurfaceLocked");
       if (haveEglSurface) {
         haveEglSurface = false;
         eglHelper.destroySurface();
@@ -603,6 +797,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
      * synchronized(sGLThreadManager) block.
      */
     private void stopEglContextLocked() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::stopEglContextLocked");
       if (haveEglContext) {
         eglHelper.finish();
         haveEglContext = false;
@@ -611,6 +806,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     private void guardedRun() throws InterruptedException {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::guardedRun");
+
       eglHelper = new EglHelper(mGLSurfaceViewWeakRef);
       haveEglContext = false;
       haveEglSurface = false;
@@ -653,31 +850,39 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
 
               // Do we need to give up the EGL context?
               if (shouldReleaseEglContext) {
+                MemInfoLoggerJ logger_shouldReleaseEglContext = new MemInfoLoggerJ("guardedRun_while:shouldReleaseEglContext");
                 stopEglSurfaceLocked();
                 stopEglContextLocked();
                 shouldReleaseEglContext = false;
                 askedToReleaseEglContext = true;
+                logger_shouldReleaseEglContext.end();
               }
 
               // Have we lost the EGL context?
               if (lostEglContext) {
+                MemInfoLoggerJ logger_lostEglContext = new MemInfoLoggerJ("guardedRun_while:lostEglContext");
                 stopEglSurfaceLocked();
                 stopEglContextLocked();
                 lostEglContext = false;
+                logger_lostEglContext.end();
               }
 
               // When pausing, release the EGL surface:
               if (pausing && haveEglSurface) {
+                MemInfoLoggerJ logger_stopEglSurfaceLocked = new MemInfoLoggerJ("guardedRun_while:stopEglSurfaceLocked");
                 stopEglSurfaceLocked();
+                logger_stopEglSurfaceLocked.end();
               }
 
               // When pausing, optionally release the EGL Context:
               if (pausing && haveEglContext) {
+                MemInfoLoggerJ logger_stopEglSurfaceLocked_again = new MemInfoLoggerJ("guardedRun_while:stopEglSurfaceLocked_again");
                 MapLibreGLSurfaceView view = mGLSurfaceViewWeakRef.get();
                 boolean preserveEglContextOnPause = view != null && view.preserveEGLContextOnPause;
                 if (!preserveEglContextOnPause) {
                   stopEglContextLocked();
                 }
+                logger_stopEglSurfaceLocked_again.end();
               }
 
               // Have we lost the SurfaceView surface?
@@ -710,6 +915,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
 
               // Ready to draw?
               if (readyToDraw()) {
+                MemInfoLoggerJ logger_readyToDraw = new MemInfoLoggerJ("guardedRun_while:readyToDraw");
 
                 // If we don't have an EGL context, try to acquire one.
                 if (!haveEglContext) {
@@ -719,6 +925,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
                     try {
                       eglHelper.start();
                     } catch (RuntimeException exception) {
+                      MemInfoLoggerJ logger_releaseEglContextLocked_exception = new MemInfoLoggerJ("guardedRun_while:releaseEglContextLocked_exception");
                       glThreadManager.releaseEglContextLocked(this);
                       return;
                     }
@@ -759,12 +966,32 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
                 if (finishDrawingRunnable != null) {
                   Log.w(TAG, "Warning, !readyToDraw() but waiting for "
                     + "draw finished! Early reporting draw finished.");
+
+                  MemInfoLoggerJ logger_before_finishDrawingRunnable = new MemInfoLoggerJ("guardedRun_while:_before_finishDrawingRunnable");
+
+                  Thread.sleep(1000L);
+
+                  MemInfoLoggerJ logger_check_finishDrawingRunnable = new MemInfoLoggerJ("guardedRun_while:_check_finishDrawingRunnable");
+
+                  Thread.sleep(1000L);
+
+                  MemInfoLoggerJ logger_finishDrawingRunnable = new MemInfoLoggerJ("guardedRun_while:finishDrawingRunnable");
+
                   finishDrawingRunnable.run();
+
+                  MemInfoLoggerJ logger_finishDrawingRunnable_after_run = new MemInfoLoggerJ("guardedRun_while:finishDrawingRunnable_after_run");
+
+                  Thread.sleep(1000L);
+
+                  MemInfoLoggerJ logger_finishDrawingRunnable_after_run_check = new MemInfoLoggerJ("guardedRun_while:finishDrawingRunnable_after_run_check");
+
                   finishDrawingRunnable = null;
                 }
               }
               // By design, this is the only place in a GLThread thread where we wait().
+              MemInfoLoggerJ logger_wait = new MemInfoLoggerJ("guardedRun_while:wait");
               glThreadManager.wait();
+              logger_wait.end();
             }
           } // end of synchronized(sGLThreadManager)
 
@@ -846,6 +1073,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
             doRenderNotification = true;
             wantRenderNotification = false;
           }
+          // logger.end();
         }
 
       } finally {
@@ -870,6 +1098,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void setRenderMode(int renderMode) {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::setRenderMode");
+
       synchronized (glThreadManager) {
         this.renderMode = renderMode;
         glThreadManager.notifyAll();
@@ -883,6 +1113,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void requestRender() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::requestRender");
+
       synchronized (glThreadManager) {
         requestRender = true;
         glThreadManager.notifyAll();
@@ -890,6 +1122,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void requestRenderAndNotify(Runnable finishDrawing) {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::requestRenderAndNotify");
+
       synchronized (glThreadManager) {
         // If we are already on the GL thread, this means a client callback
         // has caused reentrancy, for example via updating the SurfaceView parameters.
@@ -909,6 +1143,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void surfaceCreated() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::surfaceCreated");
+
       synchronized (glThreadManager) {
         hasSurface = true;
         finishedCreatingEglSurface = false;
@@ -926,6 +1162,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void surfaceDestroyed() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::surfaceDestroyed");
+
       synchronized (glThreadManager) {
         hasSurface = false;
         glThreadManager.notifyAll();
@@ -940,6 +1178,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void onPause() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::onPause");
+
       synchronized (glThreadManager) {
         requestPaused = true;
         glThreadManager.notifyAll();
@@ -954,6 +1194,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void onResume() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::onResume");
+
       synchronized (glThreadManager) {
         requestPaused = false;
         requestRender = true;
@@ -970,6 +1212,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void onWindowResize(int w, int h) {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::onWindowResize");
+
       synchronized (glThreadManager) {
         width = w;
         height = h;
@@ -1001,6 +1245,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void requestExitAndWait() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::requestExitAndWait");
+
       // don't call this from GLThread thread or it is a guaranteed
       // deadlock!
       synchronized (glThreadManager) {
@@ -1017,6 +1263,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
     }
 
     public void requestReleaseEglContextLocked() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::requestReleaseEglContextLocked");
+
       shouldReleaseEglContext = true;
       glThreadManager.notifyAll();
     }
@@ -1027,6 +1275,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
      * @param r the runnable to be run on the GL rendering thread.
      */
     public void queueEvent(@NonNull Runnable r) {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::queueEvent");
+
       synchronized (glThreadManager) {
         eventQueue.add(r);
         glThreadManager.notifyAll();
@@ -1039,6 +1289,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
      * @return Number of queue items remaining
     */
     public int waitForEmpty(long timeoutMillis) {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("GLThread::waitForEmpty");
+
       final long startTime = System.nanoTime();
       synchronized (glThreadManager) {
         // Wait for the queue to be empty
@@ -1062,6 +1314,8 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
             }
           }
         }
+        logger.end();
+        
         return this.eventQueue.size();
       }
     }

@@ -48,6 +48,10 @@ import javax.microedition.khronos.opengles.GL10;
 import static org.maplibre.android.maps.widgets.CompassView.TIME_MAP_NORTH_ANIMATION;
 import static org.maplibre.android.maps.widgets.CompassView.TIME_WAIT_IDLE;
 
+import android.util.Log;
+import java.io.File;
+import java.lang.ProcessBuilder;
+
 /**
  * <p>
  * A {@code MapView} provides an embeddable map interface.
@@ -63,6 +67,79 @@ import static org.maplibre.android.maps.widgets.CompassView.TIME_WAIT_IDLE;
  * and for ensuring your use adheres to the relevant terms of use.
  */
 public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
+
+  public static class MemInfoLoggerJ {
+
+    private String msg;
+
+    private void runCommand(String cmd) {
+      try {
+      Runtime runtime = Runtime.getRuntime();
+      runtime.exec(cmd);
+      Log.e("NS_DBG", cmd);
+      } catch (Exception exception) {
+        // Log.e(TAG, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE: " + cmd, exception);
+      }
+    }
+
+    private void runEcho(String cmd) {
+      try {
+        Thread.sleep(200);
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/echo", cmd);
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        Log.e("NS_DBG", cmd);
+        p.waitFor();
+        Thread.sleep(200);
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE echo: " + cmd, exception);
+      }
+    }
+
+    private void runDumpsys() {
+      try {
+        Thread.sleep(200);
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/dumpsys", "meminfo", "com.rivian.rivianivinavigation");
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        p.waitFor();
+        Thread.sleep(200);
+        // Log.e("DefaultContextFactory", cmd);
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE dumpsys: " + msg, exception);
+      }
+    }
+
+    private synchronized void print(Boolean begin) {
+
+        String text = "######################################################## ";
+        text += begin ? "BEGIN " : "END ";
+        text += msg + " ";
+
+        runEcho(text);
+        runDumpsys();
+
+        // String cmd = "echo \"" + text + "\" >> /data/testdir/mem_info.txt";
+        // runCommand(cmd);
+        // runCommand("dumpsys meminfo com.rivian.rivianivinavigation >> /data/testdir/mem_info.txt");
+    }
+
+    public MemInfoLoggerJ(String s){
+        msg = s;
+        print(true);
+    }
+
+    public void end() {
+        print(false);
+    }
+
+  };
+
+
 
   private final MapChangeReceiver mapChangeReceiver = new MapChangeReceiver();
   private final MapCallback mapCallback = new MapCallback();
@@ -101,34 +178,55 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
   @UiThread
   public MapView(@NonNull Context context) {
     super(context);
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::MapView");
+
     Timber.d("MapView constructed with context");
     initialize(context, MapLibreMapOptions.createFromAttributes(context));
+
+    logger.end();
   }
 
   @UiThread
   public MapView(@NonNull Context context, @Nullable AttributeSet attrs) {
     super(context, attrs);
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::MapView");
+
     Timber.d("MapView constructed with context and attribute set");
     initialize(context, MapLibreMapOptions.createFromAttributes(context, attrs));
+
+    logger.end();
   }
 
   @UiThread
   public MapView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
     super(context, attrs, defStyleAttr);
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::MapView");
+
     Timber.d( "MapView constructed with context, attributeSet and defStyleAttr");
     initialize(context, MapLibreMapOptions.createFromAttributes(context, attrs));
+
+    logger.end();
   }
 
   @UiThread
   public MapView(@NonNull Context context, @Nullable MapLibreMapOptions options) {
     super(context);
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::MapView");
+
     Timber.d("MapView constructed with context and MapLibreMapOptions");
     initialize(context, options == null ? MapLibreMapOptions.createFromAttributes(context) : options);
+
+    logger.end();
   }
 
   @CallSuper
   @UiThread
   protected void initialize(@NonNull final Context context, @NonNull final MapLibreMapOptions options) {
+
     if (isInEditMode()) {
       // in IDE layout editor, just return
       return;
@@ -150,6 +248,9 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
   }
 
   private void initialiseMap() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::MapView");
+
     Context context = getContext();
 
     // callback for focal point invalidation
@@ -201,9 +302,14 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
     }
 
     mapCallback.initialised();
+
+    logger.end();
   }
 
   protected CompassView initialiseCompassView() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::initialiseCompassView");
+
     compassView = new CompassView(this.getContext());
     addView(compassView);
     compassView.setTag("compassView");
@@ -212,10 +318,16 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
     compassView.setContentDescription(getResources().getString(R.string.maplibre_compassContentDescription));
     compassView.injectCompassAnimationListener(createCompassAnimationListener(cameraDispatcher));
     compassView.setOnClickListener(createCompassClickListener(cameraDispatcher));
+
+    logger.end();
+
     return compassView;
   }
 
   protected ImageView initialiseAttributionView() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::initialiseAttributionView");
+
     ImageView attrView = new ImageView(this.getContext());
     addView(attrView);
     attrView.setTag("attrView");
@@ -228,16 +340,24 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
     attrView.setImageDrawable(BitmapUtils.getDrawableFromRes(getContext(), R.drawable.maplibre_info_bg_selector));
     // inject widgets with MapLibreMap
     attrView.setOnClickListener(attributionClickListener = new AttributionClickListener(getContext(), maplibreMap));
+
+    logger.end();
+
     return attrView;
   }
 
   protected ImageView initialiseLogoView() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::initialiseLogoView");
+
     ImageView logoView = new ImageView(this.getContext());
     addView(logoView);
     logoView.setTag("logoView");
     logoView.getLayoutParams().width = LayoutParams.WRAP_CONTENT;
     logoView.getLayoutParams().height = LayoutParams.WRAP_CONTENT;
     logoView.setImageDrawable(BitmapUtils.getDrawableFromRes(getContext(), R.drawable.maplibre_logo_icon));
+
+    logger.end();
+
     return logoView;
   }
 
@@ -306,12 +426,18 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    */
   @UiThread
   public void onCreate(@Nullable Bundle savedInstanceState) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::onCreate");
+
     if (savedInstanceState != null && savedInstanceState.getBoolean(MapLibreConstants.STATE_HAS_SAVED_STATE)) {
       this.savedInstanceState = savedInstanceState;
     }
+
+    logger.end();
   }
 
   private void initialiseDrawingSurface(MapLibreMapOptions options) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::initialiseDrawingSurface");
+
     String localFontFamily = options.getLocalIdeographFontFamily();
     if (options.getTextureMode()) {
       TextureView textureView = new TextureView(getContext());
@@ -346,19 +472,28 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
     nativeMapView = new NativeMapView(
             getContext(), getPixelRatio(), crossSourceCollisions, this, mapChangeReceiver, mapRenderer
     );
+
+    logger.end();
   }
 
   private void onSurfaceCreated() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::onSurfaceCreated");
+    
     post(new Runnable() {
       @Override
       public void run() {
+        MemInfoLoggerJ logger_runnable = new MemInfoLoggerJ("MapView::onSurfaceCreated_runnable");
         // Initialise only when not destroyed and only once
         if (!destroyed && maplibreMap == null) {
           MapView.this.initialiseMap();
           maplibreMap.onStart();
         }
+        logger_runnable.end();
       }
     });
+
+    logger.end();
   }
 
   /**
@@ -380,6 +515,8 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    */
   @UiThread
   public void onStart() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::onStart");
+
     if (!isStarted) {
       ConnectivityReceiver.instance(getContext()).activate();
       FileSource.getInstance(getContext()).activate();
@@ -392,6 +529,8 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
     if (mapRenderer != null) {
       mapRenderer.onStart();
     }
+
+    logger.end();
   }
 
   /**
@@ -399,9 +538,12 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    */
   @UiThread
   public void onResume() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::onResume");
+
     if (mapRenderer != null) {
       mapRenderer.onResume();
     }
+    logger.end();
   }
 
   /**
@@ -419,6 +561,8 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    */
   @UiThread
   public void onStop() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::onStop");
+    
     if (attributionClickListener != null) {
       attributionClickListener.onStop();
     }
@@ -438,6 +582,8 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
       FileSource.getInstance(getContext()).deactivate();
       isStarted = false;
     }
+
+    logger.end();
   }
 
   /**
@@ -445,6 +591,8 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    */
   @UiThread
   public void onDestroy() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::onDestroy");
+
     destroyed = true;
     mapChangeReceiver.clear();
     mapCallback.onDestroy();
@@ -468,6 +616,8 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
     if (mapRenderer != null) {
       mapRenderer.onDestroy();
     }
+
+    logger.end();
   }
 
   /**
@@ -588,10 +738,14 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
 
   @Override
   protected void onSizeChanged(int width, int height, int oldw, int oldh) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::onSizeChanged");
+
     if (!isInEditMode() && nativeMapView != null) {
       // null-checking the nativeMapView, see #13277
       nativeMapView.resizeView(width, height);
     }
+
+    logger.end();
   }
 
   /**
@@ -738,7 +892,9 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    * @param listener The callback that's invoked when the camera will start rendering a frame
    */
   public void addOnWillStartRenderingFrameListener(@NonNull OnWillStartRenderingFrameListener listener) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::addOnWillStartRenderingFrameListener");
     mapChangeReceiver.addOnWillStartRenderingFrameListener(listener);
+    logger.end();
   }
 
   /**
@@ -747,7 +903,9 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    * @param listener The callback that's invoked when the camera will start rendering a frame
    */
   public void removeOnWillStartRenderingFrameListener(@NonNull OnWillStartRenderingFrameListener listener) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::removeOnWillStartRenderingFrameListener");
     mapChangeReceiver.removeOnWillStartRenderingFrameListener(listener);
+    logger.end();
   }
 
   /**
@@ -756,7 +914,10 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    * @param listener The callback that's invoked when the map has finished rendering a frame
    */
   public void addOnDidFinishRenderingFrameListener(@NonNull OnDidFinishRenderingFrameListener listener) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::addOnDidFinishRenderingFrameListener");
     mapChangeReceiver.addOnDidFinishRenderingFrameListener(listener);
+    logger.end();
+
   }
 
   /**
@@ -765,7 +926,9 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    * @param listener The callback that's invoked when the map has finished rendering a frame
    */
   public void removeOnDidFinishRenderingFrameListener(@NonNull OnDidFinishRenderingFrameListener listener) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::removeOnDidFinishRenderingFrameListener");
     mapChangeReceiver.removeOnDidFinishRenderingFrameListener(listener);
+    logger.end();
   }
 
   /**
@@ -774,7 +937,9 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    * @param listener The callback that's invoked when the map will start rendering
    */
   public void addOnWillStartRenderingMapListener(@NonNull OnWillStartRenderingMapListener listener) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::addOnWillStartRenderingMapListener");
     mapChangeReceiver.addOnWillStartRenderingMapListener(listener);
+    logger.end();
   }
 
   /**
@@ -783,7 +948,9 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    * @param listener The callback that's invoked when the map will start rendering
    */
   public void removeOnWillStartRenderingMapListener(@NonNull OnWillStartRenderingMapListener listener) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::removeOnWillStartRenderingMapListener");
     mapChangeReceiver.removeOnWillStartRenderingMapListener(listener);
+    logger.end();
   }
 
   /**
@@ -792,7 +959,9 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    * @param listener The callback that's invoked when the map has finished rendering
    */
   public void addOnDidFinishRenderingMapListener(@NonNull OnDidFinishRenderingMapListener listener) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::addOnDidFinishRenderingMapListener");
     mapChangeReceiver.addOnDidFinishRenderingMapListener(listener);
+    logger.end();
   }
 
   /**
@@ -801,7 +970,9 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    * @param listener The callback that's invoked when the map has has finished rendering.
    */
   public void removeOnDidFinishRenderingMapListener(OnDidFinishRenderingMapListener listener) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::removeOnDidFinishRenderingMapListener");
     mapChangeReceiver.removeOnDidFinishRenderingMapListener(listener);
+    logger.end();
   }
 
   /**
@@ -810,7 +981,9 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
    * @param listener The callback that's invoked when the map has entered the idle state.
    */
   public void addOnDidBecomeIdleListener(@NonNull OnDidBecomeIdleListener listener) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::addOnDidBecomeIdleListener");
     mapChangeReceiver.addOnDidBecomeIdleListener(listener);
+    logger.end();
   }
 
   /**
@@ -1315,6 +1488,8 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
      * Notify listeners, clear when done
      */
     private void onMapReady() {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::onMapReady");
+
       if (onMapReadyCallbackList.size() > 0) {
         Iterator<OnMapReadyCallback> iterator = onMapReadyCallbackList.iterator();
         while (iterator.hasNext()) {
@@ -1326,6 +1501,8 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
           iterator.remove();
         }
       }
+
+      logger.end();
     }
 
     void addOnMapReadyCallback(OnMapReadyCallback callback) {
@@ -1358,9 +1535,12 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
 
     @Override
     public void onDidFinishRenderingFrame(boolean fully, double frameEncodingTime, double frameRenderingTime) {
+      MemInfoLoggerJ logger = new MemInfoLoggerJ("MapView::onDidFinishRenderingFrame");
+
       if (maplibreMap != null) {
         maplibreMap.onUpdateFullyRendered();
       }
+      logger.end();
     }
 
     @Override

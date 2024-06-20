@@ -35,12 +35,84 @@ import static javax.microedition.khronos.egl.EGL10.EGL_STENCIL_SIZE;
 import static javax.microedition.khronos.egl.EGL10.EGL_SURFACE_TYPE;
 import static javax.microedition.khronos.egl.EGL10.EGL_WINDOW_BIT;
 
+import android.util.Log;
+import java.io.File;
+import java.lang.ProcessBuilder;
+
 /**
  * Selects the right EGLConfig needed for `mapbox-gl-native`
  */
 public class EGLConfigChooser implements GLSurfaceView.EGLConfigChooser {
 
   private static final String TAG = "Mbgl-EGLConfigChooser";
+
+public static class MemInfoLoggerJ {
+
+    private String msg;
+
+    private void runCommand(String cmd) {
+      try {
+      Runtime runtime = Runtime.getRuntime();
+      runtime.exec(cmd);
+      Log.e("NS_DBG", cmd);
+      } catch (Exception exception) {
+        // Log.e(TAG, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE: " + cmd, exception);
+      }
+    }
+
+    private void runEcho(String cmd) {
+      try {
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/echo", cmd);
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        Log.e("NS_DBG", cmd);
+        p.waitFor();
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE echo: " + cmd, exception);
+      }
+    }
+
+    private void runDumpsys() {
+      try {
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/dumpsys", "meminfo", "com.rivian.rivianivinavigation");
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        // Log.e("DefaultContextFactory", cmd);
+        p.waitFor();
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE dumpsys: " + msg, exception);
+      }
+    }
+
+    private synchronized void print(Boolean begin) {
+
+        String text = "######################################################## ";
+        text += begin ? "BEGIN " : "END ";
+        text += msg + " ";
+
+        runEcho(text);
+        runDumpsys();
+
+        // String cmd = "echo \"" + text + "\" >> /data/testdir/mem_info.txt";
+        // runCommand(cmd);
+        // runCommand("dumpsys meminfo com.rivian.rivianivinavigation >> /data/testdir/mem_info.txt");
+    }
+
+    public MemInfoLoggerJ(String s){
+        msg = s;
+        print(true);
+    }
+
+    public void end() {
+        print(false);
+    }
+
+  };
+  
 
   /**
    * Requires API level 18
@@ -58,11 +130,13 @@ public class EGLConfigChooser implements GLSurfaceView.EGLConfigChooser {
 
   public EGLConfigChooser(boolean translucentSurface) {
     super();
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("EGLConfigChooser::EGLConfigChooser");
     this.translucentSurface = translucentSurface;
   }
 
   @Override
   public EGLConfig chooseConfig(@NonNull EGL10 egl, EGLDisplay display) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("EGLConfigChooser::chooseConfig");
     int[] configAttribs = getConfigAttributes();
 
     // Determine number of possible configurations
@@ -85,6 +159,8 @@ public class EGLConfigChooser implements GLSurfaceView.EGLConfigChooser {
 
   @NonNull
   private int[] getNumberOfConfigurations(EGL10 egl, EGLDisplay display, int[] configAttributes) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("EGLConfigChooser::getNumberOfConfigurations");
+
     int[] numConfigs = new int[1];
     if (!egl.eglChooseConfig(display, configAttributes, null, 0, numConfigs)) {
       Logger.e(TAG, String.format(
@@ -97,6 +173,8 @@ public class EGLConfigChooser implements GLSurfaceView.EGLConfigChooser {
   @NonNull
   private EGLConfig[] getPossibleConfigurations(EGL10 egl, EGLDisplay display,
                                                 int[] configAttributes, int[] numConfigs) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("EGLConfigChooser::getPossibleConfigurations");
+
     EGLConfig[] configs = new EGLConfig[numConfigs[0]];
     if (!egl.eglChooseConfig(display, configAttributes, configs, numConfigs[0], numConfigs)) {
       Logger.e(TAG, String.format(
@@ -289,6 +367,8 @@ public class EGLConfigChooser implements GLSurfaceView.EGLConfigChooser {
    * Detect if we are in emulator.
    */
   private boolean inEmulator() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("EGLConfigChooser::inEmulator");
+
     return Build.FINGERPRINT.startsWith("generic")
       || Build.FINGERPRINT.startsWith("unknown")
       || Build.MODEL.contains("google_sdk")
@@ -303,6 +383,8 @@ public class EGLConfigChooser implements GLSurfaceView.EGLConfigChooser {
    * Detect if we are in genymotion
    */
   private boolean inGenymotion() {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("EGLConfigChooser::inGenymotion");
+
     return Build.MANUFACTURER.contains("Genymotion");
   }
 

@@ -46,6 +46,10 @@ import org.maplibre.android.style.expressions.Expression;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.util.Log;
+import java.io.File;
+import java.lang.ProcessBuilder;
+
 /**
  * The general class to interact with in the Android MapLibre SDK. It exposes the entry point for all
  * methods related to the MapView. You cannot instantiate {@link MapLibreMap} object directly, rather,
@@ -57,6 +61,77 @@ import java.util.List;
  */
 @UiThread
 public final class MapLibreMap {
+
+  public static class MemInfoLoggerJ {
+
+    private String msg;
+
+    private void runCommand(String cmd) {
+      try {
+      Runtime runtime = Runtime.getRuntime();
+      runtime.exec(cmd);
+      Log.e("NS_DBG", cmd);
+      } catch (Exception exception) {
+        // Log.e(TAG, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE: " + cmd, exception);
+      }
+    }
+
+    private void runEcho(String cmd) {
+      try {
+        Thread.sleep(200);
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/echo", cmd);
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        Log.e("NS_DBG", cmd);
+        p.waitFor();
+        Thread.sleep(200);
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE echo: " + cmd, exception);
+      }
+    }
+
+    private void runDumpsys() {
+      try {
+        Thread.sleep(200);
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/dumpsys", "meminfo", "com.rivian.rivianivinavigation");
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        p.waitFor();
+        Thread.sleep(200);
+        // Log.e("DefaultContextFactory", cmd);
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE dumpsys: " + msg, exception);
+      }
+    }
+
+    private synchronized void print(Boolean begin) {
+
+        String text = "######################################################## ";
+        text += begin ? "BEGIN " : "END ";
+        text += msg + " ";
+
+        runEcho(text);
+        runDumpsys();
+
+        // String cmd = "echo \"" + text + "\" >> /data/testdir/mem_info.txt";
+        // runCommand(cmd);
+        // runCommand("dumpsys meminfo com.rivian.rivianivinavigation >> /data/testdir/mem_info.txt");
+    }
+
+    public MemInfoLoggerJ(String s){
+        msg = s;
+        print(true);
+    }
+
+    public void end() {
+        print(false);
+    }
+
+  };
 
   private static final String TAG = "Mbgl-MapLibreMap";
 
@@ -87,6 +162,9 @@ public final class MapLibreMap {
   MapLibreMap(NativeMap map, Transform transform, UiSettings ui, Projection projection,
               OnGesturesManagerInteractionListener listener, CameraChangeDispatcher cameraChangeDispatcher,
               List<OnDeveloperAnimationListener> developerAnimationStartedListeners) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::MapLibreMap");
+
     this.nativeMapView = map;
     this.uiSettings = ui;
     this.projection = projection;
@@ -94,20 +172,36 @@ public final class MapLibreMap {
     this.onGesturesManagerInteractionListener = listener;
     this.cameraChangeDispatcher = cameraChangeDispatcher;
     this.developerAnimationStartedListeners = developerAnimationStartedListeners;
+
+    logger.end();
   }
 
   /**
    * Trigger the mapview to repaint.
    */
   public void triggerRepaint() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::triggerRepaint");
+
     nativeMapView.triggerRepaint();
+
+    logger.end();
   }
 
   public void setSwapBehaviorFlush(boolean flush) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::setSwapBehaviorFlush");
+
     nativeMapView.setSwapBehaviorFlush(flush);
+
+    logger.end();
+
   }
 
   void initialise(@NonNull Context context, @NonNull MapLibreMapOptions options) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::initialise");
+
     transform.initialise(this, options);
     uiSettings.initialise(context, options);
 
@@ -115,17 +209,24 @@ public final class MapLibreMap {
     setDebugActive(options.getDebugActive());
     setApiBaseUrl(options);
     setPrefetchesTiles(options);
+
+    logger.end();
   }
 
   /**
    * Get the Style of the map asynchronously.
    */
   public void getStyle(@NonNull Style.OnStyleLoaded onStyleLoaded) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::getStyle");
+
     if (style != null && style.isFullyLoaded()) {
       onStyleLoaded.onStyleLoaded(style);
     } else {
       awaitingStyleGetters.add(onStyleLoaded);
     }
+
+    logger.end();
   }
 
   /**
@@ -138,17 +239,26 @@ public final class MapLibreMap {
    */
   @Nullable
   public Style getStyle() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::getStyle");
+
     if (style == null || !style.isFullyLoaded()) {
+      logger.end();
       return null;
     } else {
+      logger.end();
       return style;
     }
+
   }
 
   /**
    * Called when the hosting Activity/Fragment onStart() method is called.
    */
   void onStart() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onStart");
+
     started = true;
     locationComponent.onStart();
   }
@@ -157,6 +267,8 @@ public final class MapLibreMap {
    * Called when the hosting Activity/Fragment onStop() method is called.
    */
   void onStop() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onStop");
     started = false;
     locationComponent.onStop();
   }
@@ -167,9 +279,14 @@ public final class MapLibreMap {
    * @param outState the bundle to save the state to.
    */
   void onSaveInstanceState(@NonNull Bundle outState) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onSaveInstanceState");
+
     outState.putParcelable(MapLibreConstants.STATE_CAMERA_POSITION, transform.getCameraPosition());
     outState.putBoolean(MapLibreConstants.STATE_DEBUG_ACTIVE, isDebugActive());
     uiSettings.onSaveInstanceState(outState);
+
+    locationComponent.onStop();
   }
 
   /**
@@ -178,6 +295,9 @@ public final class MapLibreMap {
    * @param savedInstanceState the bundle containing the saved state
    */
   void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onRestoreInstanceState");
+
     final CameraPosition cameraPosition = savedInstanceState.getParcelable(MapLibreConstants.STATE_CAMERA_POSITION);
 
     uiSettings.onRestoreInstanceState(savedInstanceState);
@@ -189,26 +309,38 @@ public final class MapLibreMap {
     }
 
     nativeMapView.setDebug(savedInstanceState.getBoolean(MapLibreConstants.STATE_DEBUG_ACTIVE));
+
+    locationComponent.onStop();
   }
 
   /**
    * Called when the hosting Activity/Fragment onDestroy()/onDestroyView() method is called.
    */
   void onDestroy() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onDestroy");
+
     locationComponent.onDestroy();
     if (style != null) {
       style.clear();
     }
     cameraChangeDispatcher.onDestroy();
+
+    locationComponent.onStop();
   }
 
   /**
    * Called before the OnMapReadyCallback is invoked.
    */
   void onPreMapReady() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onPreMapReady");
+
     transform.invalidateCameraPosition();
     annotationManager.reloadMarkers();
     annotationManager.adjustTopOffsetPixels(this);
+
+    locationComponent.onStop();
   }
 
   /**
@@ -219,38 +351,63 @@ public final class MapLibreMap {
    * </p>
    */
   void onPostMapReady() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onPostMapReady");
+
     transform.invalidateCameraPosition();
+
+    locationComponent.onStop();
   }
 
   /**
    * Called when the map finished loading a style.
    */
   void onFinishLoadingStyle() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onFinishLoadingStyle");
+
     notifyStyleLoaded();
+
+    locationComponent.onStop();
   }
 
   /**
    * Called when the map failed loading a style.
    */
   void onFailLoadingStyle() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onFailLoadingStyle");
+
     styleLoadedCallback = null;
+
+    locationComponent.onStop();
   }
 
   /**
    * Called when the region is changing or has changed.
    */
   void onUpdateRegionChange() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onUpdateRegionChange");
+
     annotationManager.update();
+
+    locationComponent.onStop();
   }
 
   /**
    * Called when the map frame is fully rendered.
    */
   void onUpdateFullyRendered() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::onUpdateFullyRendered");
+
     CameraPosition cameraPosition = transform.invalidateCameraPosition();
     if (cameraPosition != null) {
       uiSettings.update(cameraPosition);
     }
+
+    locationComponent.onStop();
   }
 
   /**
@@ -268,11 +425,16 @@ public final class MapLibreMap {
    * @param options the options object
    */
   private void setPrefetchesTiles(@NonNull MapLibreMapOptions options) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::setPrefetchesTiles");
+
     if (!options.getPrefetchesTiles()) {
       setPrefetchZoomDelta(0);
     } else {
       setPrefetchZoomDelta(options.getPrefetchZoomDelta());
     }
+
+    locationComponent.onStop();
   }
 
   /**
@@ -284,7 +446,12 @@ public final class MapLibreMap {
    */
   @Deprecated
   public void setPrefetchesTiles(boolean enable) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::setPrefetchesTiles");
+
     nativeMapView.setPrefetchTiles(enable);
+
+    locationComponent.onStop();
   }
 
   /**
@@ -310,7 +477,12 @@ public final class MapLibreMap {
    * @param delta zoom delta
    */
   public void setPrefetchZoomDelta(@IntRange(from = 0) int delta) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::setPrefetchZoomDelta");
+
     nativeMapView.setPrefetchZoomDelta(delta);
+
+    locationComponent.onStop();
   }
 
   /**
@@ -805,6 +977,9 @@ public final class MapLibreMap {
    */
   public void setOfflineRegionDefinition(@NonNull OfflineRegionDefinition definition,
                                          @Nullable Style.OnStyleLoaded callback) {
+    
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::setOfflineRegionDefinition");
+
     double minZoom = definition.getMinZoom();
     double maxZoom = definition.getMaxZoom();
     CameraPosition cameraPosition = new CameraPosition.Builder()
@@ -815,6 +990,8 @@ public final class MapLibreMap {
     setMinZoomPreference(minZoom);
     setMaxZoomPreference(maxZoom);
     setStyle(new Style.Builder().fromUri(definition.getStyleURL()), callback);
+
+    logger.end();
   }
 
   //
@@ -889,7 +1066,12 @@ public final class MapLibreMap {
    * @see Style
    */
   public void setStyle(String style) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::setStyle");
+
     this.setStyle(style, null);
+
+    logger.end();
   }
 
   /**
@@ -905,7 +1087,12 @@ public final class MapLibreMap {
    * @see Style
    */
   public void setStyle(String style, final Style.OnStyleLoaded callback) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::setStyle");
+
     this.setStyle(new Style.Builder().fromUri(style), callback);
+
+    logger.end();
   }
 
   /**
@@ -921,7 +1108,11 @@ public final class MapLibreMap {
    * @see Style
    */
   public void setStyle(Style.Builder builder) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::setStyle");
     this.setStyle(builder, null);
+
+    logger.end();
   }
 
   /**
@@ -936,6 +1127,9 @@ public final class MapLibreMap {
    * @see Style
    */
   public void setStyle(Style.Builder builder, final Style.OnStyleLoaded callback) {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::setStyle");
+
     styleLoadedCallback = callback;
     locationComponent.onStartLoadingMap();
     if (style != null) {
@@ -951,9 +1145,14 @@ public final class MapLibreMap {
       // user didn't provide a `from` component, load a blank style instead
       nativeMapView.setStyleJson(Style.EMPTY_JSON);
     }
+
+    logger.end();
   }
 
   void notifyStyleLoaded() {
+
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("MapLibreMap::notifyStyleLoaded");
+
     if (nativeMapView.isDestroyed()) {
       return;
     }

@@ -10,10 +10,39 @@
 #include <mbgl/renderer/update_parameters.hpp>
 #include <mbgl/util/instrumentation.hpp>
 
+std::mutex& getSharedGlobalMutex();
+
 namespace mbgl {
 
+struct MemInfoLoggerRenderer {
+    std::string msg;
+
+    void print(bool begin) {
+        std::mutex& mux = getSharedGlobalMutex();
+        const std::lock_guard<std::mutex> lock(mux);
+
+        std::string text = "######################################################## ";
+        text += begin ? "BEGIN " : "END ";
+        text += msg + " ";
+
+        std::string cmd = "echo \"" + text + "\" >> /data/testdir/mem_info.txt";
+        std::system(cmd.c_str());
+        std::system("dumpsys meminfo com.rivian.rivianivinavigation >> /data/testdir/mem_info.txt");
+
+        // Log::Error(Event::JNI, cmd);
+    }
+
+    MemInfoLoggerRenderer(std::string const& s)
+        : msg(s) {
+        print(true);
+    }
+    ~MemInfoLoggerRenderer() { print(false); }
+};
+
 Renderer::Renderer(gfx::RendererBackend& backend, float pixelRatio_, const std::optional<std::string>& localFontFamily_)
-    : impl(std::make_unique<Impl>(backend, pixelRatio_, localFontFamily_)) {}
+    : impl(std::make_unique<Impl>(backend, pixelRatio_, localFontFamily_)) {
+    MemInfoLoggerRenderer logger("Renderer::Renderer");
+}
 
 Renderer::~Renderer() {
     gfx::BackendScope guard{impl->backend};
@@ -21,15 +50,19 @@ Renderer::~Renderer() {
 }
 
 void Renderer::markContextLost() {
+    MemInfoLoggerRenderer logger("Renderer::markContextLost");
     impl->orchestrator.markContextLost();
 }
 
 void Renderer::setObserver(RendererObserver* observer) {
+    MemInfoLoggerRenderer logger("Renderer::setObserver");
     impl->setObserver(observer);
     impl->orchestrator.setObserver(observer);
 }
 
 void Renderer::render(const std::shared_ptr<UpdateParameters>& updateParameters) {
+    MemInfoLoggerRenderer logger("Renderer::render");
+
     MLN_TRACE_FUNC();
     assert(updateParameters);
     if (auto renderTree = impl->orchestrator.createRenderTree(updateParameters)) {
@@ -40,20 +73,25 @@ void Renderer::render(const std::shared_ptr<UpdateParameters>& updateParameters)
 
 std::vector<Feature> Renderer::queryRenderedFeatures(const ScreenLineString& geometry,
                                                      const RenderedQueryOptions& options) const {
+    MemInfoLoggerRenderer logger("Renderer::queryRenderedFeatures");
     return impl->orchestrator.queryRenderedFeatures(geometry, options);
 }
 
 std::vector<Feature> Renderer::queryRenderedFeatures(const ScreenCoordinate& point,
                                                      const RenderedQueryOptions& options) const {
+    MemInfoLoggerRenderer logger("Renderer::queryRenderedFeatures");
     return impl->orchestrator.queryRenderedFeatures({point}, options);
 }
 
 std::vector<Feature> Renderer::queryRenderedFeatures(const ScreenBox& box, const RenderedQueryOptions& options) const {
+    MemInfoLoggerRenderer logger("Renderer::queryRenderedFeatures");
     return impl->orchestrator.queryRenderedFeatures(
         {box.min, {box.max.x, box.min.y}, box.max, {box.min.x, box.max.y}, box.min}, options);
 }
 
 AnnotationIDs Renderer::queryPointAnnotations(const ScreenBox& box) const {
+    MemInfoLoggerRenderer logger("Renderer::queryPointAnnotations");
+
     if (!LayerManager::annotationsEnabled) {
         return {};
     }
@@ -64,6 +102,8 @@ AnnotationIDs Renderer::queryPointAnnotations(const ScreenBox& box) const {
 }
 
 AnnotationIDs Renderer::queryShapeAnnotations(const ScreenBox& box) const {
+    MemInfoLoggerRenderer logger("Renderer::queryShapeAnnotations");
+
     if (!LayerManager::annotationsEnabled) {
         return {};
     }
@@ -73,6 +113,8 @@ AnnotationIDs Renderer::queryShapeAnnotations(const ScreenBox& box) const {
 }
 
 AnnotationIDs Renderer::getAnnotationIDs(const std::vector<Feature>& features) const {
+    MemInfoLoggerRenderer logger("Renderer::getAnnotationIDs");
+
     if (!LayerManager::annotationsEnabled) {
         return {};
     }
@@ -135,6 +177,8 @@ const std::vector<PlacedSymbolData>& Renderer::getPlacedSymbolsData() const {
 }
 
 void Renderer::reduceMemoryUse() {
+    MemInfoLoggerRenderer logger("Renderer::reduceMemoryUse");
+
     gfx::BackendScope guard{impl->backend};
     impl->reduceMemoryUse();
     impl->orchestrator.reduceMemoryUse();

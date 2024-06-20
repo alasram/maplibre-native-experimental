@@ -58,7 +58,7 @@ public:
     // Sets the new update parameters to use on subsequent
     // renders. Be sure to trigger a render with
     // requestRender().
-    void update(std::shared_ptr<UpdateParameters>);
+    void updateX(std::shared_ptr<UpdateParameters>);
 
     // Gives a handle to the Renderer to enable actions on
     // any thread.

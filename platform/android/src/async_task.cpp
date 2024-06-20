@@ -21,6 +21,10 @@ public:
     }
 
     void maySend() {
+        if (true) {
+            task();
+            return;
+        }
         if (queued) {
             queued = false;
             loop->addRunnable(this);

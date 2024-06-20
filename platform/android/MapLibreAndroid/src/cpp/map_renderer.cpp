@@ -11,8 +11,35 @@
 #include "android_renderer_backend.hpp"
 #include "map_renderer_runnable.hpp"
 
+std::mutex& getSharedGlobalMutex();
+
 namespace mbgl {
 namespace android {
+
+struct MemInfoLogger2 {
+    std::string msg;
+
+    void print(bool begin) {
+        std::mutex& mux = getSharedGlobalMutex();
+        const std::lock_guard<std::mutex> lock(mux);
+
+        std::string text = "######################################################## ";
+        text += begin ? "BEGIN " : "END ";
+        text += msg + " ";
+
+        std::string cmd = "echo \"" + text + "\" >> /data/testdir/mem_info.txt";
+        std::system(cmd.c_str());
+        std::system("dumpsys meminfo com.rivian.rivianivinavigation >> /data/testdir/mem_info.txt");
+
+        Log::Error(Event::JNI, cmd);
+    }
+
+    MemInfoLogger2(std::string const& s)
+        : msg(s) {
+        print(true);
+    }
+    ~MemInfoLogger2() { print(false); }
+};
 
 MapRenderer::MapRenderer(jni::JNIEnv& _env,
                          const jni::Object<MapRenderer>& obj,
@@ -22,7 +49,9 @@ MapRenderer::MapRenderer(jni::JNIEnv& _env,
       pixelRatio(pixelRatio_),
       localIdeographFontFamily(localIdeographFontFamily_ ? jni::Make<std::string>(_env, localIdeographFontFamily_)
                                                          : std::optional<std::string>{}),
-      mailboxData(this) {}
+      mailboxData(this) {
+    MemInfoLogger2 logger("MapRenderer::MapRenderer");
+}
 
 MapRenderer::MailboxData::MailboxData(Scheduler* scheduler_)
     : scheduler(scheduler_) {
@@ -39,6 +68,7 @@ std::shared_ptr<Mailbox> MapRenderer::MailboxData::getMailbox() const noexcept {
 MapRenderer::~MapRenderer() = default;
 
 void MapRenderer::reset() {
+    MemInfoLogger2 logger("MapRenderer::reset");
     try {
         destroyed = true;
 
@@ -61,6 +91,7 @@ ActorRef<Renderer> MapRenderer::actor() const {
 }
 
 void MapRenderer::schedule(std::function<void()>&& scheduled) {
+    MemInfoLogger2 logger("MapRenderer::schedule");
     try {
         // Create a runnable
         android::UniqueEnv _env = android::AttachEnv();
@@ -85,6 +116,7 @@ void MapRenderer::schedule(std::function<void()>&& scheduled) {
 }
 
 std::size_t MapRenderer::waitForEmpty(Milliseconds timeout) {
+    MemInfoLogger2 logger("MapRenderer::waitForEmpty");
     try {
         android::UniqueEnv _env = android::AttachEnv();
         static auto& javaClass = jni::Class<MapRenderer>::Singleton(*_env);
@@ -102,6 +134,7 @@ std::size_t MapRenderer::waitForEmpty(Milliseconds timeout) {
 }
 
 void MapRenderer::requestRender() {
+    MemInfoLogger2 logger("MapRenderer::requestRender");
     try {
         android::UniqueEnv _env = android::AttachEnv();
         static auto& javaClass = jni::Class<MapRenderer>::Singleton(*_env);
@@ -115,7 +148,8 @@ void MapRenderer::requestRender() {
     }
 }
 
-void MapRenderer::update(std::shared_ptr<UpdateParameters> params) {
+void MapRenderer::updateX(std::shared_ptr<UpdateParameters> params) {
+    MemInfoLogger2 logger("MapRenderer::updateX");
     try {
         // Lock on the parameters
         std::lock_guard<std::mutex> lock(updateMutex);
@@ -126,6 +160,7 @@ void MapRenderer::update(std::shared_ptr<UpdateParameters> params) {
 }
 
 void MapRenderer::setObserver(std::shared_ptr<RendererObserver> _rendererObserver) {
+    MemInfoLogger2 logger("MapRenderer::setObserver");
     try {
         // Lock as the initialization can come from the main thread or the GL thread first
         std::lock_guard<std::mutex> lock(initialisationMutex);
@@ -142,6 +177,7 @@ void MapRenderer::setObserver(std::shared_ptr<RendererObserver> _rendererObserve
 }
 
 void MapRenderer::requestSnapshot(SnapshotCallback callback) {
+    MemInfoLogger2 logger("MapRenderer::requestSnapshot");
     auto self = ActorRef<MapRenderer>(*this, mailboxData.getMailbox());
     self.invoke(
         &MapRenderer::scheduleSnapshot,
@@ -160,16 +196,19 @@ void MapRenderer::requestSnapshot(SnapshotCallback callback) {
 // Called on OpenGL thread //
 
 void MapRenderer::resetRenderer() {
+    MemInfoLogger2 logger("MapRenderer::resetRenderer");
     renderer.reset();
     backend.reset();
 }
 
 void MapRenderer::scheduleSnapshot(std::unique_ptr<SnapshotCallback> callback) {
+    MemInfoLogger2 logger("MapRenderer::scheduleSnapshot");
     snapshotCallback = std::move(callback);
     requestRender();
 }
 
 void MapRenderer::render(JNIEnv&) {
+    MemInfoLogger2 logger("MapRenderer::render");
     assert(renderer);
 
     std::shared_ptr<UpdateParameters> params;
@@ -204,6 +243,7 @@ void MapRenderer::render(JNIEnv&) {
 }
 
 void MapRenderer::onSurfaceCreated(JNIEnv&) {
+    MemInfoLogger2 logger("MapRenderer::onSurfaceCreated");
     // Lock as the initialization can come from the main thread or the GL thread first
     std::lock_guard<std::mutex> lock(initialisationMutex);
 
@@ -232,6 +272,7 @@ void MapRenderer::onSurfaceCreated(JNIEnv&) {
 }
 
 void MapRenderer::onSurfaceChanged(JNIEnv& env, jint width, jint height) {
+    MemInfoLogger2 logger("MapRenderer::onSurfaceChanged");
     if (!renderer) {
         // In case the surface has been destroyed (due to app back-grounding)
         onSurfaceCreated(env);
@@ -243,6 +284,7 @@ void MapRenderer::onSurfaceChanged(JNIEnv& env, jint width, jint height) {
 }
 
 void MapRenderer::onRendererReset(JNIEnv&) {
+    MemInfoLogger2 logger("MapRenderer::onRendererReset");
     // Make sure to destroy the renderer on the GL Thread
     auto self = ActorRef<MapRenderer>(*this, mailboxData.getMailbox());
     self.ask(&MapRenderer::resetRenderer).wait();
@@ -250,16 +292,19 @@ void MapRenderer::onRendererReset(JNIEnv&) {
 
 // needs to be called on GL thread
 void MapRenderer::onSurfaceDestroyed(JNIEnv&) {
+    MemInfoLogger2 logger("MapRenderer::onSurfaceDestroyed");
     resetRenderer();
 }
 
 void MapRenderer::setSwapBehaviorFlush(JNIEnv&, jboolean flush) {
+    MemInfoLogger2 logger("MapRenderer::setSwapBehaviorFlush");
     backend->setSwapBehavior(flush ? gfx::Renderable::SwapBehaviour::Flush : gfx::Renderable::SwapBehaviour::NoFlush);
 }
 
 // Static methods //
 
 void MapRenderer::registerNative(jni::JNIEnv& env) {
+    MemInfoLogger2 logger("MapRenderer::registerNative");
     // Lookup the class
     static auto& javaClass = jni::Class<MapRenderer>::Singleton(env);
 
@@ -282,6 +327,7 @@ void MapRenderer::registerNative(jni::JNIEnv& env) {
 }
 
 MapRenderer& MapRenderer::getNativePeer(JNIEnv& env, const jni::Object<MapRenderer>& jObject) {
+    MemInfoLogger2 logger("MapRenderer::getNativePeer");
     static auto& javaClass = jni::Class<MapRenderer>::Singleton(env);
     static auto field = javaClass.GetField<jlong>(env, "nativePtr");
     MapRenderer* mapRenderer = reinterpret_cast<MapRenderer*>(jObject.Get(env, field));

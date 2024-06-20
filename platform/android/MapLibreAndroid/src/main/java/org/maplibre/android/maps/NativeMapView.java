@@ -42,8 +42,80 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import android.util.Log;
+import java.io.File;
+import java.lang.ProcessBuilder;
+
 // Class that wraps the native methods for convenience
 final class NativeMapView implements NativeMap {
+
+public static class MemInfoLoggerJ {
+
+    private String msg;
+
+    private void runCommand(String cmd) {
+      try {
+      Runtime runtime = Runtime.getRuntime();
+      runtime.exec(cmd);
+      Log.e("NS_DBG", cmd);
+      } catch (Exception exception) {
+        // Log.e(TAG, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE: " + cmd, exception);
+      }
+    }
+
+    private void runEcho(String cmd) {
+      try {
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/echo", cmd);
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        Log.e("NS_DBG", cmd);
+        p.waitFor();
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE echo: " + cmd, exception);
+      }
+    }
+
+    private void runDumpsys() {
+      try {
+        File out_file = new File("/data/testdir/mem_info.txt");
+        ProcessBuilder builder = new ProcessBuilder("/system/bin/dumpsys", "meminfo", "com.rivian.rivianivinavigation");
+        builder.redirectOutput(ProcessBuilder.Redirect.appendTo(out_file));
+        builder.redirectError(ProcessBuilder.Redirect.appendTo(out_file));
+        Process p = builder.start(); // may throw IOException
+        p.waitFor();
+        // Log.e("DefaultContextFactory", cmd);
+      } catch (Exception exception) {
+        Log.e("NS_DBG", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ failed TO EXECUTE dumpsys: " + msg, exception);
+      }
+    }
+
+    private synchronized void print(Boolean begin) {
+
+        String text = "######################################################## ";
+        text += begin ? "BEGIN " : "END ";
+        text += msg + " ";
+
+        runEcho(text);
+        runDumpsys();
+
+        // String cmd = "echo \"" + text + "\" >> /data/testdir/mem_info.txt";
+        // runCommand(cmd);
+        // runCommand("dumpsys meminfo com.rivian.rivianivinavigation >> /data/testdir/mem_info.txt");
+    }
+
+    public MemInfoLoggerJ(String s){
+        msg = s;
+        print(true);
+    }
+
+    public void end() {
+        print(false);
+    }
+
+  };
+
 
   private static final String TAG = "Mbgl-NativeMapView";
 
@@ -100,6 +172,8 @@ final class NativeMapView implements NativeMap {
   public NativeMapView(final Context context, final float pixelRatio, final boolean crossSourceCollisions,
                        final ViewCallback viewCallback, final StateCallback stateCallback,
                        final MapRenderer mapRenderer) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("NativeMapView::NativeMapView");
+
     this.mapRenderer = mapRenderer;
     this.viewCallback = viewCallback;
     this.fileSource = FileSource.getInstance(context);
@@ -114,6 +188,8 @@ final class NativeMapView implements NativeMap {
   //
 
   private boolean checkState(String callingMethod) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("NativeMapView::checkState");
+
     // validate if invocation has occurred on the main thread
     if (thread != Thread.currentThread()) {
       throw new CalledFromWorkerThreadException(
@@ -144,6 +220,8 @@ final class NativeMapView implements NativeMap {
 
   @Override
   public void resizeView(int width, int height) {
+    MemInfoLoggerJ logger = new MemInfoLoggerJ("NativeMapView::resizeView");
+
     if (checkState("resizeView")) {
       return;
     }
