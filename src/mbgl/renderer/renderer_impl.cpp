@@ -538,6 +538,20 @@ void Renderer::Impl::render(const RenderTree& renderTree,
     }
 
     frameCount += 1;
+
+    // FPS counter
+    const double updatePeriod = 1;
+    static thread_local auto lastFPSUpdate = std::chrono::steady_clock::now();
+    static thread_local int frameCounter = 0;
+    auto time = std::chrono::steady_clock::now();
+    ++frameCounter;
+    auto deltaTime = std::chrono::duration<double>(time - lastFPSUpdate).count();
+    if (deltaTime >= updatePeriod) {
+        auto fps = frameCounter / deltaTime;
+        frameCounter = 0;
+        lastFPSUpdate = time;
+        Log::Error(Event::Render, "########################################## FPS: " + std::to_string(fps));
+    }
 }
 
 void Renderer::Impl::reduceMemoryUse() {
