@@ -170,7 +170,7 @@ struct ThreadHandleWrapper
 #endif
 
 
-#if defined __i386 || defined _M_IX86 || defined __x86_64__ || defined _M_X64
+#if defined TRACY_HW_TIMER && (defined __i386 || defined _M_IX86 || defined __x86_64__ || defined _M_X64)
 static inline void CpuId( uint32_t* regs, uint32_t leaf )
 {
     memset(regs, 0, sizeof(uint32_t) * 4);
@@ -372,10 +372,16 @@ static const char* GetHostInfo()
 
     ptr += sprintf( ptr, "User: %s@%s\n", user, hostname );
 #else
-    char hostname[_POSIX_HOST_NAME_MAX]{};
-    char user[_POSIX_LOGIN_NAME_MAX]{};
+#ifndef HOST_NAME_MAX
+    const size_t HOST_NAME_MAX = 1024u;
+#endif
+#ifndef LOGIN_NAME_MAX
+    const size_t LOGIN_NAME_MAX = 1024u;
+#endif
+    char hostname[HOST_NAME_MAX]{};
+    char user[LOGIN_NAME_MAX]{};
 
-    gethostname( hostname, _POSIX_HOST_NAME_MAX );
+    gethostname( hostname, HOST_NAME_MAX );
 #  if defined __ANDROID__
     const auto login = getlogin();
     if( login )
@@ -387,7 +393,7 @@ static const char* GetHostInfo()
         memcpy( user, "(?)", 4 );
     }
 #  else
-    getlogin_r( user, _POSIX_LOGIN_NAME_MAX );
+    getlogin_r( user, LOGIN_NAME_MAX );
 #  endif
 
     ptr += sprintf( ptr, "User: %s@%s\n", user, hostname );
@@ -405,7 +411,7 @@ static const char* GetHostInfo()
     ptr += sprintf( ptr, "Arch: unknown\n" );
 #endif
 
-#if defined __i386 || defined _M_IX86 || defined __x86_64__ || defined _M_X64
+#if defined TRACY_HW_TIMER && (defined __i386 || defined _M_IX86 || defined __x86_64__ || defined _M_X64)
     uint32_t regs[4];
     char cpuModel[4*4*3];
     auto modelPtr = cpuModel;
@@ -1223,7 +1229,7 @@ void Profiler::Worker()
     uint8_t cpuArch = CpuArchUnknown;
 #endif
 
-#if defined __i386 || defined _M_IX86 || defined __x86_64__ || defined _M_X64
+#if defined TRACY_HW_TIMER && (defined __i386 || defined _M_IX86 || defined __x86_64__ || defined _M_X64)
     uint32_t regs[4];
     char manufacturer[12];
     CpuId( regs, 0 );
