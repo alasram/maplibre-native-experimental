@@ -46,7 +46,7 @@ public:
 
     void setVertexAttrId(const size_t id);
 
-    void upload(gfx::UploadPass&);
+    void issueUpload(gfx::UploadPass&);
 
 protected:
     class Impl;
