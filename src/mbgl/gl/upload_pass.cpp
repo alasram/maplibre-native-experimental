@@ -9,6 +9,7 @@
 #include <mbgl/gl/vertex_buffer_resource.hpp>
 #include <mbgl/gl/index_buffer_resource.hpp>
 #include <mbgl/gl/texture_resource.hpp>
+#include <mbgl/util/instrumentation.hpp>
 #include <mbgl/util/logging.hpp>
 
 #if MLN_DRAWABLE_RENDERER
@@ -31,6 +32,8 @@ std::unique_ptr<gfx::VertexBufferResource> UploadPass::createVertexBufferResourc
                                                                                   const std::size_t size,
                                                                                   const gfx::BufferUsageType usage,
                                                                                   bool /*persistent*/) {
+    MLN_TRACE_FUNC()
+
     BufferID id = 0;
     MBGL_CHECK_ERROR(glGenBuffers(1, &id));
     commandEncoder.context.renderingStats().numBuffers++;
@@ -43,6 +46,8 @@ std::unique_ptr<gfx::VertexBufferResource> UploadPass::createVertexBufferResourc
 }
 
 void UploadPass::updateVertexBufferResource(gfx::VertexBufferResource& resource, const void* data, std::size_t size) {
+    MLN_TRACE_FUNC()
+
     commandEncoder.context.vertexBuffer = static_cast<gl::VertexBufferResource&>(resource).buffer;
     MBGL_CHECK_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, size, data));
 }
@@ -51,6 +56,8 @@ std::unique_ptr<gfx::IndexBufferResource> UploadPass::createIndexBufferResource(
                                                                                 std::size_t size,
                                                                                 const gfx::BufferUsageType usage,
                                                                                 bool /*persistent*/) {
+    MLN_TRACE_FUNC()
+
     BufferID id = 0;
     MBGL_CHECK_ERROR(glGenBuffers(1, &id));
     commandEncoder.context.renderingStats().numBuffers++;
@@ -64,6 +71,8 @@ std::unique_ptr<gfx::IndexBufferResource> UploadPass::createIndexBufferResource(
 }
 
 void UploadPass::updateIndexBufferResource(gfx::IndexBufferResource& resource, const void* data, std::size_t size) {
+    MLN_TRACE_FUNC()
+
     // Be sure to unbind any existing vertex array object before binding the
     // index buffer so that we don't mess up another VAO
     commandEncoder.context.bindVertexArray = 0;
@@ -75,6 +84,8 @@ std::unique_ptr<gfx::TextureResource> UploadPass::createTextureResource(const Si
                                                                         const void* data,
                                                                         gfx::TexturePixelType format,
                                                                         gfx::TextureChannelDataType type) {
+    MLN_TRACE_FUNC()
+
     auto obj = commandEncoder.context.createUniqueTexture();
     const int textureByteSize = gl::TextureResource::getStorageSize(size, format, type);
     commandEncoder.context.renderingStats().memTextures += textureByteSize;
@@ -96,6 +107,8 @@ void UploadPass::updateTextureResource(gfx::TextureResource& resource,
                                        const void* data,
                                        gfx::TexturePixelType format,
                                        gfx::TextureChannelDataType type) {
+    MLN_TRACE_FUNC()
+
     // Always use texture unit 0 for manipulating it.
     commandEncoder.context.activeTextureUnit = 0;
     commandEncoder.context.texture[0] = static_cast<gl::TextureResource&>(resource).texture;
@@ -117,6 +130,8 @@ void UploadPass::updateTextureResourceSub(gfx::TextureResource& resource,
                                           const void* data,
                                           gfx::TexturePixelType format,
                                           gfx::TextureChannelDataType type) {
+    MLN_TRACE_FUNC()
+
     // Always use texture unit 0 for manipulating it.
     commandEncoder.context.activeTextureUnit = 0;
     commandEncoder.context.texture[0] = static_cast<const gl::TextureResource&>(resource).texture;
@@ -143,6 +158,8 @@ const std::unique_ptr<gfx::VertexBufferResource> noBuffer;
 }
 const gfx::UniqueVertexBufferResource& UploadPass::getBuffer(const gfx::VertexVectorBasePtr& vec,
                                                              const gfx::BufferUsageType usage) {
+    MLN_TRACE_FUNC()
+
     if (vec) {
         const auto* rawBufPtr = vec->getRawData();
         const auto rawBufSize = static_cast<int>(vec->getRawCount() * vec->getRawSize());
@@ -191,6 +208,8 @@ gfx::AttributeBindingArray UploadPass::buildAttributeBindings(
     const gfx::VertexAttributeArray& overrides,
     const gfx::BufferUsageType usage,
     /*out*/ std::vector<std::unique_ptr<gfx::VertexBufferResource>>& outBuffers) {
+    MLN_TRACE_FUNC()
+
     AttributeBindingArray bindings;
     bindings.resize(defaults.allocatedSize());
 

@@ -7,6 +7,7 @@
 #include <mbgl/gl/vertex_buffer_resource.hpp>
 #include <mbgl/programs/segment.hpp>
 #include <mbgl/shaders/gl/shader_program_gl.hpp>
+#include <mbgl/util/instrumentation.hpp>
 #include <mbgl/util/logging.hpp>
 
 namespace mbgl {
@@ -138,6 +139,8 @@ struct IndexBufferGL : public gfx::IndexBufferBase {
 };
 
 void DrawableGL::upload(gfx::UploadPass& uploadPass) {
+    MLN_TRACE_FUNC()
+
     if (isCustom) {
         return;
     }
@@ -238,6 +241,8 @@ gfx::StencilMode DrawableGL::makeStencilMode(PaintParameters& parameters) const 
 }
 
 void DrawableGL::uploadTextures() const {
+    MLN_TRACE_FUNC()
+
     for (const auto& texture : textures) {
         if (texture) {
             texture->upload();
