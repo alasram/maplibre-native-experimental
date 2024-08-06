@@ -14,6 +14,7 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import static android.opengl.GLSurfaceView.RENDERMODE_WHEN_DIRTY;
+import static android.opengl.GLSurfaceView.RENDERMODE_CONTINUOUSLY;
 
 /**
  * The {@link GLSurfaceViewMapRenderer} encapsulates the GL thread and
@@ -35,7 +36,8 @@ public class GLSurfaceViewMapRenderer extends MapRenderer implements GLSurfaceVi
     glSurfaceView.setEGLWindowSurfaceFactory(new EGLWindowSurfaceFactory());
     glSurfaceView.setEGLConfigChooser(new EGLConfigChooser());
     glSurfaceView.setRenderer(this);
-    glSurfaceView.setRenderMode(RENDERMODE_WHEN_DIRTY);
+    // glSurfaceView.setRenderMode(RENDERMODE_WHEN_DIRTY);
+    glSurfaceView.setRenderMode(RENDERMODE_CONTINUOUSLY);
     glSurfaceView.setPreserveEGLContextOnPause(true);
     glSurfaceView.setDetachedListener(new MapLibreGLSurfaceView.OnGLSurfaceViewDetachedListener() {
       @Override
