@@ -141,6 +141,8 @@ struct IndexBufferGL : public gfx::IndexBufferBase {
 };
 
 void DrawableGL::upload(gfx::UploadPass& uploadPass) {
+    MLN_TRACE_FUNC()
+
     if (isCustom) {
         return;
     }
@@ -257,7 +259,8 @@ gfx::StencilMode DrawableGL::makeStencilMode(PaintParameters& parameters) const 
 }
 
 void DrawableGL::uploadTextures() const {
-    MLN_TRACE_FUNC();
+    MLN_TRACE_FUNC()
+
     for (const auto& texture : textures) {
         if (texture) {
             texture->upload();

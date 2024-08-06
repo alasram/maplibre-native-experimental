@@ -6,6 +6,7 @@
 
 #include <mbgl/gl/texture_resource.hpp>
 #include <mbgl/gfx/texture.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 namespace mbgl {
 namespace gl {
@@ -34,8 +35,10 @@ Texture2D& Texture2D::setFormat(gfx::TexturePixelType pixelFormat_, gfx::Texture
 }
 
 Texture2D& Texture2D::setSize(mbgl::Size size_) noexcept {
-    size = size_;
-    storageDirty = true;
+    if (size != size_) {
+        size = size_;
+        storageDirty = true;
+    }
     return *this;
 }
 
@@ -71,6 +74,8 @@ size_t Texture2D::numChannels() const noexcept {
 }
 
 void Texture2D::createObject() noexcept {
+    MLN_TRACE_FUNC()
+
     // Create a new texture object
     assert(!textureResource);
     auto obj = context.createUniqueTexture();
@@ -82,6 +87,8 @@ void Texture2D::createObject() noexcept {
 }
 
 void Texture2D::createStorage(const void* data) noexcept {
+    MLN_TRACE_FUNC()
+
     assert(textureResource);
 
     // Create backing storage for our texture object
@@ -181,6 +188,8 @@ void Texture2D::unbind() noexcept {
 }
 
 void Texture2D::upload(const void* pixelData, const Size& size_) noexcept {
+    MLN_TRACE_FUNC()
+
     if (!textureResource || storageDirty || size_ == Size{0, 0} || size_ != size) {
         size = size_;
 
@@ -200,6 +209,8 @@ void Texture2D::upload(const void* pixelData, const Size& size_) noexcept {
 }
 
 void Texture2D::uploadSubRegion(const void* pixelData, const Size& size_, uint16_t xOffset, uint16_t yOffset) noexcept {
+    MLN_TRACE_FUNC()
+
     using namespace platform;
 
     assert(textureResource);
@@ -225,6 +236,8 @@ void Texture2D::uploadSubRegion(const void* pixelData, const Size& size_, uint16
 }
 
 void Texture2D::upload() noexcept {
+    MLN_TRACE_FUNC()
+
     if (image && image->valid()) {
         setFormat(gfx::TexturePixelType::RGBA, gfx::TextureChannelDataType::UnsignedByte);
         upload(image->data.get(), image->size);
