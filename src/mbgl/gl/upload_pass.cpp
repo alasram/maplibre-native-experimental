@@ -86,12 +86,10 @@ std::unique_ptr<gfx::TextureResource> UploadPass::createTextureResource(const Si
                                                                         gfx::TextureChannelDataType type) {
     MLN_TRACE_FUNC()
 
-    auto obj = commandEncoder.context.createUniqueTexture();
-    const int textureByteSize = gl::TextureResource::getStorageSize(size, format, type);
-    commandEncoder.context.renderingStats().memTextures += textureByteSize;
-    auto resource = std::make_unique<gl::TextureResource>(std::move(obj), textureByteSize);
+    auto obj = commandEncoder.context.createUniqueTexture(size, format, type);
+    auto resource = std::make_unique<gl::TextureResource>(std::move(obj));
     commandEncoder.context.pixelStoreUnpack = {1};
-    updateTextureResource(*resource, size, data, format, type);
+    updateTextureResourceSub(*resource, 0, 0, size, data, format, type);
     // We are using clamp to edge here since OpenGL ES doesn't allow GL_REPEAT
     // on NPOT textures. We use those when the pixelRatio isn't a power of two,
     // e.g. on iPhone 6 Plus.
@@ -109,18 +107,7 @@ void UploadPass::updateTextureResource(gfx::TextureResource& resource,
                                        gfx::TextureChannelDataType type) {
     MLN_TRACE_FUNC()
 
-    // Always use texture unit 0 for manipulating it.
-    commandEncoder.context.activeTextureUnit = 0;
-    commandEncoder.context.texture[0] = static_cast<gl::TextureResource&>(resource).texture;
-    MBGL_CHECK_ERROR(glTexImage2D(GL_TEXTURE_2D,
-                                  0,
-                                  Enum<gfx::TexturePixelType>::to(format),
-                                  size.width,
-                                  size.height,
-                                  0,
-                                  Enum<gfx::TexturePixelType>::to(format),
-                                  Enum<gfx::TextureChannelDataType>::to(type),
-                                  data));
+    updateTextureResourceSub(resource, 0, 0, size, data, format, type);
 }
 
 void UploadPass::updateTextureResourceSub(gfx::TextureResource& resource,
@@ -132,9 +119,18 @@ void UploadPass::updateTextureResourceSub(gfx::TextureResource& resource,
                                           gfx::TextureChannelDataType type) {
     MLN_TRACE_FUNC()
 
+    auto& ctx = commandEncoder.context;
+    assert(ctx.getTexturePool().isUsed(static_cast<gl::TextureResource&>(resource).texture));
+    assert(ctx.getTexturePool().desc(static_cast<gl::TextureResource&>(resource).texture).channelType == type);
+    assert(ctx.getTexturePool().desc(static_cast<gl::TextureResource&>(resource).texture).pixelFormat == format);
+    assert(ctx.getTexturePool().desc(static_cast<gl::TextureResource&>(resource).texture).size.width >=
+           xOffset + size.width);
+    assert(ctx.getTexturePool().desc(static_cast<gl::TextureResource&>(resource).texture).size.height >=
+           yOffset + size.height);
+
     // Always use texture unit 0 for manipulating it.
-    commandEncoder.context.activeTextureUnit = 0;
-    commandEncoder.context.texture[0] = static_cast<const gl::TextureResource&>(resource).texture;
+    ctx.activeTextureUnit = 0;
+    ctx.texture[0] = static_cast<const gl::TextureResource&>(resource).texture;
     MBGL_CHECK_ERROR(glTexSubImage2D(GL_TEXTURE_2D,
                                      0,
                                      xOffset,
