@@ -268,15 +268,11 @@ void Context::verifyProgramLinkage(ProgramID program_) {
 UniqueTexture Context::createUniqueTexture() {
     MLN_TRACE_FUNC()
 
-    if (pooledTextures.empty()) {
-        pooledTextures.resize(TextureMax);
-        MBGL_CHECK_ERROR(glGenTextures(TextureMax, pooledTextures.data()));
-        stats.numCreatedTextures += TextureMax;
-    }
-
-    TextureID id = pooledTextures.back();
-    pooledTextures.pop_back();
+    TextureID id = 0;
+    MBGL_CHECK_ERROR(glGenTextures(1, &id));
+    stats.numCreatedTextures++;
     stats.numActiveTextures++;
+
     // NOLINTNEXTLINE(performance-move-const-arg)
     return UniqueTexture{std::move(id), {this}};
 }
@@ -530,8 +526,6 @@ std::unique_ptr<gfx::DrawScopeResource> Context::createDrawScopeResource() {
 void Context::reset() {
     MLN_TRACE_FUNC()
 
-    std::copy(pooledTextures.begin(), pooledTextures.end(), std::back_inserter(abandonedTextures));
-    pooledTextures.resize(0);
     performCleanup();
 }
 
@@ -887,6 +881,7 @@ void Context::performCleanup() {
         MBGL_CHECK_ERROR(glDeleteTextures(int(abandonedTextures.size()), abandonedTextures.data()));
         stats.numCreatedTextures -= int(abandonedTextures.size());
         assert(stats.numCreatedTextures >= 0);
+        assert(stats.numCreatedTextures == stats.numActiveTextures);
         abandonedTextures.clear();
     }
 

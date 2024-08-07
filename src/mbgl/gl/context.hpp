@@ -29,7 +29,6 @@
 namespace mbgl {
 namespace gl {
 
-constexpr size_t TextureMax = 64;
 using ProcAddress = void (*)();
 class RendererBackend;
 
@@ -102,9 +101,8 @@ public:
     void reset();
 
     bool empty() const {
-        return pooledTextures.empty() && abandonedPrograms.empty() && abandonedShaders.empty() &&
-               abandonedBuffers.empty() && abandonedTextures.empty() && abandonedVertexArrays.empty() &&
-               abandonedFramebuffers.empty();
+        return abandonedPrograms.empty() && abandonedShaders.empty() && abandonedBuffers.empty() &&
+               abandonedTextures.empty() && abandonedVertexArrays.empty() && abandonedFramebuffers.empty();
     }
 
     extension::Debugging* getDebuggingExtension() const { return debugging.get(); }
@@ -229,8 +227,6 @@ private:
     friend detail::VertexArrayDeleter;
     friend detail::FramebufferDeleter;
     friend detail::RenderbufferDeleter;
-
-    std::vector<TextureID> pooledTextures;
 
     std::vector<ProgramID> abandonedPrograms;
     std::vector<ShaderID> abandonedShaders;
