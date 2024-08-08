@@ -93,18 +93,23 @@ public:
 
     // Actually remove the objects we marked as abandoned with the above methods.
     // Only call this while the OpenGL context is exclusive to this thread.
+    // Pooled textured are retained
     void performCleanup() override;
 
+    // Called when the app receives a memory warning and before it goes to the background.
+    // Calls performCleanup and destroy all pooled resources
     void reduceMemoryUsage() override;
 
     // Drain pools and remove abandoned objects, in preparation for destroying the store.
     // Only call this while the OpenGL context is exclusive to this thread.
     void reset();
 
-    bool empty() const {
+    // Returns whether there are any objects that need to be cleaned up.
+    // If considerPool is true, it will also check resources are still pooled.
+    bool empty(bool considerPool = false) const {
         return abandonedPrograms.empty() && abandonedShaders.empty() && abandonedBuffers.empty() &&
                abandonedTextures.empty() && abandonedVertexArrays.empty() && abandonedFramebuffers.empty() &&
-               texturePool->empty();
+               (considerPool ? texturePool->empty() : true);
     }
 
     extension::Debugging* getDebuggingExtension() const { return debugging.get(); }

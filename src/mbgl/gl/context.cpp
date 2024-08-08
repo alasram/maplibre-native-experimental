@@ -108,9 +108,6 @@ Context::~Context() noexcept {
 
         reset();
 
-        // Delete all pooled resources
-        texturePool = nullptr;
-
 #if !defined(NDEBUG)
         Log::Debug(Event::General, "Rendering Stats:\n" + stats.toString("\n"));
 #endif
@@ -533,6 +530,9 @@ void Context::reset() {
     MLN_TRACE_FUNC()
 
     performCleanup();
+
+    // Delete all pooled resources and reset the pools.
+    texturePool.reset();
 }
 
 #if MLN_DRAWABLE_RENDERER
@@ -924,6 +924,7 @@ void Context::reduceMemoryUsage() {
     MLN_TRACE_FUNC_GL()
 
     performCleanup();
+    assert(texturePool);
     texturePool->shrink();
 
     // Ensure that all pending actions are executed to ensure that they happen

@@ -25,7 +25,7 @@ TEST(ResourcePool, TexturePool) {
     gfx::BackendScope scope{backend};
 
     gl::Context context{backend};
-    EXPECT_TRUE(context.empty());
+    EXPECT_TRUE(context.empty(true));
 
     auto& pool = context.getTexturePool();
     EXPECT_LE(oneMB, pool.maxStorage());
@@ -116,7 +116,7 @@ TEST(ResourcePool, TexturePool) {
     EXPECT_FALSE(pool.isUsed(id));
     EXPECT_FALSE(pool.isUnused(id));
     EXPECT_FALSE(pool.isPooled(id));
-    EXPECT_TRUE(context.empty());
+    EXPECT_TRUE(context.empty(true));
 }
 
 #endif
