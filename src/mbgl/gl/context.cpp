@@ -868,8 +868,8 @@ void Context::performCleanup() {
                 if (binding == id) {
                     binding.setDirty();
                 }
-                texturePool->release(id);
             }
+            texturePool->release(id);
         }
         abandonedTextures.clear();
     }

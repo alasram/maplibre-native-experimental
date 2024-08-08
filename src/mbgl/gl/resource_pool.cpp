@@ -22,13 +22,9 @@ size_t storageSize(const Texture2DDesc& desc) {
     return static_cast<size_t>(TextureResource::getStorageSize(desc.size, desc.pixelFormat, desc.channelType));
 }
 
-void logDebugMessage(const std::string& message, const Texture2DDesc& desc, size_t storageBefore, size_t storageAfter) {
+void logDebugMessage(const std::string& message) {
 #if !defined(NDEBUG)
-    Log::Debug(Event::General,
-               "Texture2DPool: " + message + " " + util::toString(desc.size.width) + "x" +
-                   util::toString(desc.size.height) + " " + util::toString(storageSize(desc) / 1024) +
-                   "KB, storage before " + util::toString(storageBefore / 1024) + "KB, storage after " +
-                   util::toString(storageAfter / 1024) + "KB");
+    Log::Debug(Event::General, "Texture2DPool: " + message);
 #endif
 }
 
@@ -59,6 +55,10 @@ Texture2DPool::~Texture2DPool() {
     assert(lru_cache.empty());
     assert(descriptions.empty());
     assert(pool.empty());
+    logDebugMessage("total allocations " + util::toString(allocCount));
+    logDebugMessage("total reused allocations " + util::toString(reuseCount));
+    logDebugMessage("total textures released " + util::toString(releaseCount));
+    logDebugMessage("total textures released and deallocated " + util::toString(freedCount));
 }
 
 TextureID Texture2DPool::alloc(const Texture2DDesc& desc) {
@@ -75,11 +75,12 @@ TextureID Texture2DPool::alloc(const Texture2DDesc& desc) {
         set_it->second.used.insert(id);
         assert(lru_cache.isHit(id));
         lru_cache.remove(id);
-        logDebugMessage("Reusing texture", desc, poolStorage, poolStorage);
+        ++reuseCount;
         return id;
     }
 
     // Allocate a new texture
+    ++allocCount;
     return allocateGLMemory(desc);
 }
 
@@ -96,7 +97,7 @@ void Texture2DPool::release(TextureID id) {
     // Evict old textures if necessary
     evict();
 
-    logDebugMessage("Released texture", desc, storageBefore, poolStorage);
+    ++releaseCount;
 }
 
 TextureID Texture2DPool::allocateGLMemory(const Texture2DDesc& desc) {
@@ -141,8 +142,6 @@ TextureID Texture2DPool::allocateGLMemory(const Texture2DDesc& desc) {
     // Evict old textures if necessary
     evict();
 
-    logDebugMessage("Allocated new texture", desc, storageBefore, poolStorage);
-
     return id;
 }
 
@@ -182,7 +181,7 @@ void Texture2DPool::freeAllocatedGLMemory(TextureID id) {
     // Update stats
     context->renderingStats().numCreatedTextures--;
 
-    logDebugMessage("Freed texture", desc, storageBefore, poolStorage);
+    ++freedCount;
 }
 
 void Texture2DPool::evict() {

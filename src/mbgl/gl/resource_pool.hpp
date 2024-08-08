@@ -107,6 +107,11 @@ private:
     std::unordered_map<Texture2DDesc, TextureSet, Texture2DDescHash> pool;
     std::unordered_map<TextureID, Texture2DDesc> descriptions;
     LRU<TextureID> lru_cache;
+    // stats
+    int64_t allocCount = 0;   // total allocations
+    int64_t reuseCount = 0;   // total reused allocations
+    int64_t releaseCount = 0; // total textures released
+    int64_t freedCount = 0;   // total textures released and deallocated
 };
 
 } // namespace gl
