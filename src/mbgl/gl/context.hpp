@@ -58,7 +58,7 @@ public:
     UniqueProgram createProgram(ShaderID vertexShader, ShaderID fragmentShader, const char* location0AttribName);
     void verifyProgramLinkage(ProgramID);
     void linkProgram(ProgramID);
-    UniqueTexture createUniqueTexture();
+    UniqueTexture createUniqueTexture(const Size& size, gfx::TexturePixelType format, gfx::TextureChannelDataType type);
 
     Framebuffer createFramebuffer(const gfx::Renderbuffer<gfx::RenderbufferPixelType::RGBA>&,
                                   const gfx::Renderbuffer<gfx::RenderbufferPixelType::DepthStencil>&);

@@ -29,6 +29,10 @@ inline bool operator==(const Texture2DDesc& desc1, const Texture2DDesc& desc2) {
     return desc1.size == desc2.size && desc1.pixelFormat == desc2.pixelFormat && desc1.channelType == desc2.channelType;
 }
 
+inline bool operator!=(const Texture2DDesc& desc1, const Texture2DDesc& desc2) {
+    return !(desc1 == desc2);
+}
+
 class Texture2DPool {
 public:
     // Create a texture pool with a maximum storage size maxPoolStorage in bytes

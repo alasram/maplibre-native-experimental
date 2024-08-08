@@ -8,6 +8,7 @@
 #include <mbgl/gl/enum.hpp>
 #include <mbgl/gl/texture_resource.hpp>
 #include <mbgl/util/hash.hpp>
+#include <mbgl/util/instrumentation.hpp>
 #include <mbgl/util/logging.hpp>
 
 namespace mbgl {
@@ -61,6 +62,8 @@ Texture2DPool::~Texture2DPool() {
 }
 
 TextureID Texture2DPool::alloc(const Texture2DDesc& desc) {
+    MLN_TRACE_FUNC()
+
     context->renderingStats().numActiveTextures++;
 
     // Check if the texture is already allocated
@@ -81,7 +84,7 @@ TextureID Texture2DPool::alloc(const Texture2DDesc& desc) {
 }
 
 void Texture2DPool::release(TextureID id) {
-    context->renderingStats().numActiveTextures--;
+    MLN_TRACE_FUNC()
 
     assert(isUsed(id));
     auto storageBefore = poolStorage;
@@ -97,6 +100,8 @@ void Texture2DPool::release(TextureID id) {
 }
 
 TextureID Texture2DPool::allocateGLMemory(const Texture2DDesc& desc) {
+    MLN_TRACE_FUNC()
+
     auto storageBefore = poolStorage;
 
     // Create handle
@@ -128,7 +133,10 @@ TextureID Texture2DPool::allocateGLMemory(const Texture2DDesc& desc) {
     pool[desc].used.insert(id);
 
     // Update poolStorage
-    poolStorage += storageSize(desc);
+    auto storage = storageSize(desc);
+    poolStorage += storage;
+    context->renderingStats().memTextures += storage;
+    MLN_TRACE_ALLOC_TEXTURE(id, storage)
 
     // Evict old textures if necessary
     evict();
@@ -139,6 +147,8 @@ TextureID Texture2DPool::allocateGLMemory(const Texture2DDesc& desc) {
 }
 
 void Texture2DPool::freeAllocatedGLMemory(TextureID id) {
+    MLN_TRACE_FUNC()
+
     auto storageBefore = poolStorage;
 
     // Remove from descriptions
@@ -161,7 +171,11 @@ void Texture2DPool::freeAllocatedGLMemory(TextureID id) {
     }
 
     // Update poolStorage
-    poolStorage -= storageSize(desc);
+    auto storage = storageSize(desc);
+    poolStorage -= storage;
+    context->renderingStats().memTextures -= storage;
+    assert(context->renderingStats().memTextures >= 0);
+    MLN_TRACE_FREE_TEXTURE(id)
 
     // Delete the texture
     MBGL_CHECK_ERROR(glDeleteTextures(1, &id));
@@ -179,6 +193,8 @@ void Texture2DPool::evict() {
 }
 
 void Texture2DPool::shrink() {
+    MLN_TRACE_FUNC()
+
     while (!lru_cache.empty()) {
         TextureID id = lru_cache.evict();
         freeAllocatedGLMemory(id);

@@ -110,6 +110,7 @@ TEST(ResourcePool, TexturePool) {
     }
 
     context.reduceMemoryUsage();
+    context.renderingStats().numActiveTextures = 0;
     EXPECT_EQ(pool.usedStorage(), 0);
     EXPECT_EQ(pool.unusedStorage(), 0);
     EXPECT_EQ(pool.storage(), 0);

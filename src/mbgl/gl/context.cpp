@@ -268,13 +268,13 @@ void Context::verifyProgramLinkage(ProgramID program_) {
     throw std::runtime_error("program failed to link");
 }
 
-UniqueTexture Context::createUniqueTexture() {
+UniqueTexture Context::createUniqueTexture(const Size& size,
+                                           gfx::TexturePixelType format,
+                                           gfx::TextureChannelDataType type) {
     MLN_TRACE_FUNC()
 
-    TextureID id = 0;
-    MBGL_CHECK_ERROR(glGenTextures(1, &id));
-    stats.numCreatedTextures++;
-    stats.numActiveTextures++;
+    assert(texturePool);
+    TextureID id = texturePool->alloc(size, format, type);
 
     // NOLINTNEXTLINE(performance-move-const-arg)
     return UniqueTexture{std::move(id), {this}};
@@ -305,26 +305,12 @@ std::unique_ptr<gfx::TextureResource> Context::createTextureResource(const Size 
                                                                      const gfx::TextureChannelDataType type) {
     MLN_TRACE_FUNC()
 
-    auto obj = createUniqueTexture();
-    int textureByteSize = gl::TextureResource::getStorageSize(size, format, type);
-    stats.memTextures += textureByteSize;
-    std::unique_ptr<gfx::TextureResource> resource = std::make_unique<gl::TextureResource>(std::move(obj),
-                                                                                           textureByteSize);
+    auto obj = createUniqueTexture(size, format, type);
+    std::unique_ptr<gfx::TextureResource> resource = std::make_unique<gl::TextureResource>(std::move(obj));
 
     // Always use texture unit 0 for manipulating it.
     activeTextureUnit = 0;
     texture[0] = static_cast<gl::TextureResource&>(*resource).texture;
-
-    // Creates an empty texture with the specified size and format.
-    MBGL_CHECK_ERROR(glTexImage2D(GL_TEXTURE_2D,
-                                  0,
-                                  Enum<gfx::TexturePixelType>::sizedFor(format, type),
-                                  size.width,
-                                  size.height,
-                                  0,
-                                  Enum<gfx::TexturePixelType>::to(format),
-                                  Enum<gfx::TextureChannelDataType>::to(type),
-                                  nullptr));
 
     // We are using clamp to edge here since OpenGL ES doesn't allow GL_REPEAT
     // on NPOT textures. We use those when the pixelRatio isn't a power of two,
@@ -882,12 +868,9 @@ void Context::performCleanup() {
                 if (binding == id) {
                     binding.setDirty();
                 }
+                texturePool->release(id);
             }
         }
-        MBGL_CHECK_ERROR(glDeleteTextures(int(abandonedTextures.size()), abandonedTextures.data()));
-        stats.numCreatedTextures -= int(abandonedTextures.size());
-        assert(stats.numCreatedTextures >= 0);
-        assert(stats.numCreatedTextures == stats.numActiveTextures);
         abandonedTextures.clear();
     }
 
