@@ -10,6 +10,7 @@
 #include <mbgl/gl/state.hpp>
 #include <mbgl/gl/value.hpp>
 #include <mbgl/gl/framebuffer.hpp>
+#include <mbgl/gl/resource_pool.hpp>
 #include <mbgl/gl/vertex_array.hpp>
 #include <mbgl/gl/types.hpp>
 #include <mbgl/platform/gl_functions.hpp>
@@ -102,7 +103,8 @@ public:
 
     bool empty() const {
         return abandonedPrograms.empty() && abandonedShaders.empty() && abandonedBuffers.empty() &&
-               abandonedTextures.empty() && abandonedVertexArrays.empty() && abandonedFramebuffers.empty();
+               abandonedTextures.empty() && abandonedVertexArrays.empty() && abandonedFramebuffers.empty() &&
+               texturePool->empty();
     }
 
     extension::Debugging* getDebuggingExtension() const { return debugging.get(); }
@@ -148,6 +150,8 @@ public:
 #endif
 
     void setDirtyState() override;
+
+    Texture2DPool& getTexturePool();
 
 private:
     RendererBackend& backend;
@@ -235,6 +239,8 @@ private:
     std::vector<VertexArrayID> abandonedVertexArrays;
     std::vector<FramebufferID> abandonedFramebuffers;
     std::vector<RenderbufferID> abandonedRenderbuffers;
+
+    std::unique_ptr<Texture2DPool> texturePool;
 
 public:
 #if !defined(NDEBUG)

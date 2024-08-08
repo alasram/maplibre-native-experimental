@@ -98,6 +98,8 @@ Context::Context(RendererBackend& backend_)
 #if MLN_DRAWABLE_RENDERER
     uboAllocator = std::make_unique<gl::UniformBufferAllocator>();
 #endif
+
+    texturePool = std::make_unique<Texture2DPool>(this);
 }
 
 Context::~Context() noexcept {
@@ -105,6 +107,10 @@ Context::~Context() noexcept {
         backend.getThreadPool().runRenderJobs(true /* closeQueue */);
 
         reset();
+
+        // Delete all pooled resources
+        texturePool = nullptr;
+
 #if !defined(NDEBUG)
         Log::Debug(Event::General, "Rendering Stats:\n" + stats.toString("\n"));
 #endif
@@ -918,6 +924,7 @@ void Context::reduceMemoryUsage() {
     MLN_TRACE_FUNC_GL()
 
     performCleanup();
+    texturePool->shrink();
 
     // Ensure that all pending actions are executed to ensure that they happen
     // before the app goes to the background.
@@ -942,6 +949,11 @@ void Context::clearStencilBuffer(const int32_t bits) {
     MBGL_CHECK_ERROR(glClear(GL_STENCIL_BUFFER_BIT));
 
     stats.stencilClears++;
+}
+
+Texture2DPool& Context::getTexturePool() {
+    assert(texturePool);
+    return *texturePool;
 }
 
 } // namespace gl
