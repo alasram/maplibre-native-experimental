@@ -70,7 +70,7 @@ TextureID Texture2DPool::alloc(const Texture2DDesc& desc) {
         TextureID id = *set_it->second.free.begin();
         set_it->second.free.erase(id);
         set_it->second.used.insert(id);
-        assert(!lru_cache.isHit(id));
+        assert(lru_cache.isHit(id));
         lru_cache.remove(id);
         logDebugMessage("Reusing texture", desc, poolStorage, poolStorage);
         return id;
@@ -102,6 +102,7 @@ TextureID Texture2DPool::allocateGLMemory(const Texture2DDesc& desc) {
     // Create handle
     TextureID id = 0;
     MBGL_CHECK_ERROR(glGenTextures(1, &id));
+    assert(id != 0);
 
     // Allocate memory
     // Bind to TU 0 and upload
@@ -146,8 +147,7 @@ void Texture2DPool::freeAllocatedGLMemory(TextureID id) {
     auto desc = desc_it->second;
     descriptions.erase(desc_it);
 
-    // Remove from descriptions lru_cache
-    assert(lru_cache.isHit(id));
+    // Remove from descriptions lru_cache if it exists
     lru_cache.remove(id);
 
     // Remove from pool
@@ -156,6 +156,9 @@ void Texture2DPool::freeAllocatedGLMemory(TextureID id) {
     auto free_it = set_it->second.free.find(id);
     assert(free_it != set_it->second.free.end());
     set_it->second.free.erase(free_it);
+    if (set_it->second.free.empty() && set_it->second.used.empty()) {
+        pool.erase(set_it);
+    }
 
     // Update poolStorage
     poolStorage -= storageSize(desc);

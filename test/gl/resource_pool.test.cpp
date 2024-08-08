@@ -3,6 +3,7 @@
 
 #include <unordered_set>
 
+#include <mbgl/gfx/backend_scope.hpp>
 #include <mbgl/gfx/types.hpp>
 #include <mbgl/gl/headless_backend.hpp>
 #include <mbgl/gl/context.hpp>
@@ -21,6 +22,7 @@ constexpr gl::Texture2DDesc makeDescOneMB() {
 
 TEST(ResourcePool, TexturePool) {
     gl::HeadlessBackend backend{{32, 32}};
+    gfx::BackendScope scope{backend};
 
     gl::Context context{backend};
     EXPECT_TRUE(context.empty());
@@ -63,14 +65,14 @@ TEST(ResourcePool, TexturePool) {
     std::unordered_set<gl::TextureID> ids = {id};
     while (pool.storage() <= pool.maxStorage()) {
         auto new_id = pool.alloc(makeDescOneMB());
-        EXPECT_TRUE(ids.find(new_id) != ids.end());
+        EXPECT_TRUE(ids.find(new_id) == ids.end());
+        ids.insert(new_id);
         EXPECT_EQ(pool.usedStorage(), oneMB * ids.size());
         EXPECT_EQ(pool.unusedStorage(), 0);
         EXPECT_EQ(pool.storage(), pool.usedStorage());
         EXPECT_TRUE(pool.isUsed(new_id));
         EXPECT_FALSE(pool.isUnused(new_id));
         EXPECT_TRUE(pool.isPooled(new_id));
-        ids.insert(new_id);
     }
 
     EXPECT_LE(pool.maxStorage(), pool.usedStorage());
@@ -90,6 +92,22 @@ TEST(ResourcePool, TexturePool) {
     EXPECT_FALSE(pool.isUsed(id));
     EXPECT_FALSE(pool.isUnused(id));
     EXPECT_FALSE(pool.isPooled(id));
+
+    size_t used = pool.usedStorage();
+    size_t unused = 0;
+    while (!ids.empty()) {
+        auto i = *ids.begin();
+        pool.release(i);
+        ids.erase(i);
+        used -= oneMB;
+        unused += oneMB;
+        EXPECT_EQ(pool.usedStorage(), used);
+        EXPECT_EQ(pool.unusedStorage(), unused);
+        EXPECT_EQ(pool.storage(), used + unused);
+        EXPECT_FALSE(pool.isUsed(i));
+        EXPECT_TRUE(pool.isUnused(i));
+        EXPECT_TRUE(pool.isPooled(i));
+    }
 
     context.reduceMemoryUsage();
     EXPECT_EQ(pool.usedStorage(), 0);
