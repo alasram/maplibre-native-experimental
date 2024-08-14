@@ -22,5 +22,15 @@ gfx::Context& RendererBackend::getContext() {
     return *context;
 }
 
+void RendererBackend::beginFreeThreadedUpload() {
+    assert(freeThreadedUploadIsActive == false);
+    freeThreadedUploadIsActive = true;
+}
+
+void RendererBackend::endFreeThreadedUpload() {
+    assert(freeThreadedUploadIsActive == true);
+    freeThreadedUploadIsActive = false;
+}
+
 } // namespace gfx
 } // namespace mbgl

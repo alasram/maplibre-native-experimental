@@ -21,8 +21,10 @@ void ThreadedSchedulerBase::terminate() {
     cvAvailable.notify_all();
 }
 
-std::thread ThreadedSchedulerBase::makeSchedulerThread(size_t index) {
-    return std::thread([this, index] {
+std::thread ThreadedSchedulerBase::makeSchedulerThread(size_t index,
+                                                       bool gatherTasks,
+                                                       std::function<ThreadCallbacks()> callbacksGenerator) {
+    return std::thread([this, index, gatherTasks, callbacksGen = std::move(callbacksGenerator)] {
         auto& settings = platform::Settings::getInstance();
         auto value = settings.get(platform::EXPERIMENTAL_THREAD_PRIORITY_WORKER);
         if (auto* priority = value.getDouble()) {
@@ -33,6 +35,11 @@ std::thread ThreadedSchedulerBase::makeSchedulerThread(size_t index) {
         platform::attachThread();
 
         owningThreadPool.set(this);
+
+        auto callbacks = callbacksGen();
+        if (callbacks.onThreadBegin) {
+            callbacks.onThreadBegin();
+        }
 
         while (true) {
             std::unique_lock<std::mutex> conditionLock(workerMutex);
@@ -54,6 +61,9 @@ std::thread ThreadedSchedulerBase::makeSchedulerThread(size_t index) {
                 std::lock_guard<std::mutex> lock(taggedQueueLock);
                 for (const auto& [tag, queue] : taggedQueue) {
                     pending.push_back(queue);
+                    if (!gatherTasks) {
+                        break;
+                    }
                 }
             }
 
@@ -72,6 +82,10 @@ std::thread ThreadedSchedulerBase::makeSchedulerThread(size_t index) {
 
                 assert(taskCount > 0);
                 taskCount--;
+
+                if (callbacks.onTaskBegin) {
+                    callbacks.onTaskBegin();
+                }
 
                 try {
                     tasklet();
@@ -100,7 +114,15 @@ std::thread ThreadedSchedulerBase::makeSchedulerThread(size_t index) {
                     }
                     throw;
                 }
+
+                if (callbacks.onTaskEnd) {
+                    callbacks.onTaskEnd();
+                }
             }
+        }
+
+        if (callbacks.onThreadEnd) {
+            callbacks.onThreadEnd();
         }
     });
 }

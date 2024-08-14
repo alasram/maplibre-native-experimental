@@ -25,6 +25,9 @@ BackendScope::BackendScope(RendererBackend& backend_, ScopeType scopeType_)
       scopeType(scopeType_) {
     MLN_TRACE_FUNC()
 
+    // Cannot change scope while uploading resources
+    assert(backend.isFreeThreadedUploadActive() == false);
+
     if (priorScope) {
         assert(priorScope->nextScope == nullptr);
         priorScope->nextScope = this;
@@ -38,6 +41,9 @@ BackendScope::BackendScope(RendererBackend& backend_, ScopeType scopeType_)
 
 BackendScope::~BackendScope() {
     MLN_TRACE_FUNC()
+
+    // Cannot change scope while uploading resources
+    assert(backend.isFreeThreadedUploadActive() == false);
 
     assert(nextScope == nullptr);
     deactivate();
@@ -75,6 +81,23 @@ void BackendScope::deactivate() {
 
 bool BackendScope::exists() {
     return currentScope().get();
+}
+
+FreeThreadedUploadBackendScope::FreeThreadedUploadBackendScope(RendererBackend& backend_)
+    : backend(backend_) {
+    MLN_TRACE_FUNC()
+
+    assert(backend.isFreeThreadedUploadActive() == false);
+    backend.beginFreeThreadedUpload();
+    assert(backend.isFreeThreadedUploadActive() == true);
+}
+
+FreeThreadedUploadBackendScope::~FreeThreadedUploadBackendScope() {
+    MLN_TRACE_FUNC()
+
+    assert(backend.isFreeThreadedUploadActive() == true);
+    backend.endFreeThreadedUpload();
+    assert(backend.isFreeThreadedUploadActive() == false);
 }
 
 } // namespace gfx
