@@ -8,22 +8,11 @@
 namespace mbgl {
 namespace android {
 
-class AndroidUploadThreadContext : public gfx::UploadThreadContext {
-public:
-    AndroidUploadThreadContext(EGLDisplay, EGLConfig, EGLContext, EGLSurface);
-    ~AndroidUploadThreadContext() override;
-    void createContext() override;
-    void destroyContext() override;
-    void bindContext() override;
-    void unbindContext() override;
-
-private:
-    EGLDisplay display = EGL_NO_DISPLAY;
-    EGLConfig config;
-    EGLContext mainContext = EGL_NO_CONTEXT;
-    EGLContext sharedContext = EGL_NO_CONTEXT;
-    EGLSurface surface = EGL_NO_SURFACE;
-};
+#ifdef ANDROID_RENDER_BACKEND_DISABLE_SHARED_EGL_CONTEXTS
+#define ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS false
+#else
+#define ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS true
+#endif
 
 class AndroidRendererBackend : public gl::RendererBackend, public mbgl::gfx::Renderable {
 public:
@@ -41,7 +30,7 @@ public:
     void setSwapBehavior(SwapBehaviour swapBehaviour);
     void swap();
 
-    bool supportFreeThreadedUpload() const override { return true; }
+    bool supportFreeThreadedUpload() const override { return ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS; }
     std::shared_ptr<gfx::UploadThreadContext> createUploadThreadContext() override;
 
 private:
@@ -53,6 +42,7 @@ private:
     EGLConfig eglConfig;
 
     void initEglContext();
+    void waitForAsyncUpload();
 
     // mbgl::gfx::RendererBackend implementation
 public:
@@ -73,6 +63,24 @@ protected:
 protected:
     mbgl::gl::ProcAddress getExtensionFunctionPointer(const char*) override;
     void updateAssumedState() override;
+};
+
+class AndroidUploadThreadContext : public gfx::UploadThreadContext {
+public:
+    AndroidUploadThreadContext(AndroidRendererBackend&, EGLDisplay, EGLConfig, EGLContext);
+    ~AndroidUploadThreadContext() override;
+    void createContext() override;
+    void destroyContext() override;
+    void bindContext() override;
+    void unbindContext() override;
+
+private:
+    AndroidRendererBackend& backend;
+    EGLDisplay display = EGL_NO_DISPLAY;
+    EGLConfig config;
+    EGLContext mainContext = EGL_NO_CONTEXT;
+    EGLContext sharedContext = EGL_NO_CONTEXT;
+    EGLSurface surface = EGL_NO_SURFACE;
 };
 
 } // namespace android

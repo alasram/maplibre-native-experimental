@@ -83,12 +83,17 @@ std::thread ThreadedSchedulerBase::makeSchedulerThread(size_t index,
                 assert(taskCount > 0);
                 taskCount--;
 
-                if (callbacks.onTaskBegin) {
-                    callbacks.onTaskBegin();
-                }
-
                 try {
+                    if (callbacks.onTaskBegin) {
+                        callbacks.onTaskBegin();
+                    }
+
                     tasklet();
+
+                    if (callbacks.onTaskEnd) {
+                        callbacks.onTaskEnd();
+                    }
+
                     tasklet = {}; // destroy the function and release its captures before unblocking `waitForEmpty`
 
                     if (!--q->runningCount) {
@@ -113,10 +118,6 @@ std::thread ThreadedSchedulerBase::makeSchedulerThread(size_t index,
                         continue;
                     }
                     throw;
-                }
-
-                if (callbacks.onTaskEnd) {
-                    callbacks.onTaskEnd();
                 }
             }
         }
@@ -188,7 +189,11 @@ void ThreadedSchedulerBase::waitForEmpty(const util::SimpleIdentity tag) {
         // After waiting for the queue to empty, go ahead and erase it from the map.
         {
             std::lock_guard<std::mutex> lock(taggedQueueLock);
-            taggedQueue.erase(tagToFind);
+            auto it = taggedQueue.find(tagToFind);
+            assert(it != taggedQueue.end());
+            if (it->second->queue.empty()) {
+                taggedQueue.erase(it);
+            }
         }
     }
 }

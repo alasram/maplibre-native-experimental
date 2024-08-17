@@ -14,6 +14,8 @@ public:
     ResourceUploadThreadPool(RendererBackend& backend)
         : ThreadedScheduler(numberOfResourceUploadThreads(), false, makeThreadCallbacks(backend)) {}
 
+    void waitUntilComplete() { waitForEmpty(); }
+
 private:
     static size_t numberOfResourceUploadThreads() {
         size_t hwThreads = std::thread::hardware_concurrency();
@@ -29,7 +31,8 @@ private:
 
         // callbacks will run in a separate thread. It is assumed the backend exists during upload
 
-        auto callbackGen = [ctx = backend.createUploadThreadContext()]() {
+        auto callbackGen = [&]() {
+            auto ctx = backend.createUploadThreadContext();
             ThreadCallbacks callbacks;
             callbacks.onThreadBegin = [ctx = ctx]() {
                 ctx->createContext();

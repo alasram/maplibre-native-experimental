@@ -71,6 +71,7 @@ protected:
     /// Must not be called from a task provided to this scheduler.
     /// @param tag Tag of the owner to identify the collection of tasks to
     // wait for. Not providing a tag waits on tasks owned by the scheduler.
+    /// @note The queue may not be empty if schedule() is called while waitForEmpty() is running
     void waitForEmpty(const util::SimpleIdentity = util::SimpleIdentity::Empty) override;
 
     /// Returns true if called from a thread managed by the scheduler

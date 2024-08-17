@@ -85,7 +85,11 @@ public:
 
     void draw(const gfx::DrawMode&, std::size_t indexOffset, std::size_t indexLength);
 
+    // Flush the OpenGL command queue and wait for commands to finish executing.
     void finish();
+
+    // Flush the OpenGL command queue without waiting for commands to finish executing.
+    void flushCommands();
 
 #if MLN_DRAWABLE_RENDERER
     std::shared_ptr<gl::Fence> getCurrentFrameFence() const;
@@ -157,6 +161,7 @@ public:
     void setDirtyState() override;
 
     Texture2DPool& getTexturePool();
+    RendererBackend& getBackend() { return backend; }
 
 private:
     RendererBackend& backend;

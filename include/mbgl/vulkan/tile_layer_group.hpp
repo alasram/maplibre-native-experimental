@@ -21,7 +21,8 @@ public:
     TileLayerGroup(int32_t layerIndex, std::size_t initialCapacity, std::string name);
     ~TileLayerGroup() override {}
 
-    void upload(gfx::UploadPass&) override;
+    void beginUpload(gfx::UploadPass&) override;
+    void endUpload(gfx::UploadPass&) override;
     void render(RenderOrchestrator&, PaintParameters&) override;
 
     const gfx::UniformBufferArray& getUniformBuffers() const override { return uniformBuffers; };

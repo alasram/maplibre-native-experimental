@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mbgl/gfx/renderer_backend.hpp>
+#include <mbgl/gfx/resource_upload_thread_pool.hpp>
 #include <mbgl/util/image.hpp>
 #include <mbgl/util/size.hpp>
 #include <mbgl/util/util.hpp>
@@ -27,6 +28,8 @@ public:
     /// One-time shader initialization
     void initShaders(gfx::ShaderRegistry&, const ProgramParameters& programParameters) override;
 #endif
+
+    gfx::ResourceUploadThreadPool& getResourceUploadThreadPool();
 
 protected:
     std::unique_ptr<gfx::Context> createContext() override;
@@ -58,6 +61,9 @@ public:
     void setFramebufferBinding(FramebufferID fbo);
     void setViewport(int32_t x, int32_t y, const Size&);
     void setScissorTest(bool);
+
+private:
+    std::unique_ptr<gfx::ResourceUploadThreadPool> resourceUploadThreadPool;
 };
 
 } // namespace gl

@@ -1,5 +1,6 @@
 #include <mbgl/gl/drawable_gl.hpp>
 #include <mbgl/gl/drawable_gl_impl.hpp>
+#include <mbgl/gl/renderer_backend.hpp>
 #include <mbgl/gl/texture2d.hpp>
 #include <mbgl/gl/upload_pass.hpp>
 #include <mbgl/gl/vertex_array.hpp>
@@ -140,9 +141,7 @@ struct IndexBufferGL : public gfx::IndexBufferBase {
     std::unique_ptr<mbgl::gfx::IndexBuffer> buffer;
 };
 
-void DrawableGL::upload(gfx::UploadPass& uploadPass) {
-    MLN_TRACE_FUNC()
-
+void DrawableGL::beginUpload(gfx::UploadPass& uploadPass) {
     if (isCustom) {
         return;
     }
@@ -152,24 +151,74 @@ void DrawableGL::upload(gfx::UploadPass& uploadPass) {
         return;
     }
 
-    MLN_TRACE_FUNC();
-#ifdef MLN_TRACY_ENABLE
-    {
-        auto str = name + "/" + (tileID ? util::toString(*tileID) : std::string());
-        MLN_ZONE_STR(str);
+    MLN_TRACE_FUNC()
+
+    assert(impl);
+    assert(impl->buildVertexArray == false);
+    assert(impl->attributeBindings.empty());
+
+    auto& context = uploadPass.getContext();
+    auto& glContext = static_cast<gl::Context&>(context);
+    auto& backend = glContext.getBackend();
+    if (backend.supportFreeThreadedUpload()) {
+        backend.getResourceUploadThreadPool().schedule([this, &uploadPass] { beginUploadImpl(uploadPass); });
+    } else {
+        beginUploadImpl(uploadPass);
     }
-#endif
+}
 
-    const bool build = vertexAttributes &&
-                       (vertexAttributes->isModifiedAfter(attributeUpdateTime) ||
-                        std::any_of(impl->segments.begin(), impl->segments.end(), [](const auto& seg) {
-                            return !static_cast<const DrawSegmentGL&>(*seg).getVertexArray().isValid();
-                        }));
+void DrawableGL::endUpload(gfx::UploadPass& uploadPass) {
+    // endUpload Creates the VAO
+    // VAO must be created in the amin thread because they are not sharable with other GL contexts
+    if (!impl->buildVertexArray) {
+        return;
+    }
 
-    if (build) {
-        MLN_TRACE_ZONE(build attributes);
-        auto& context = uploadPass.getContext();
-        auto& glContext = static_cast<gl::Context&>(context);
+    MLN_TRACE_FUNC()
+
+    auto& context = uploadPass.getContext();
+    auto& glContext = static_cast<gl::Context&>(context);
+
+    // Create a VAO for each group of vertexes described by a segment
+    for (const auto& seg : impl->segments) {
+        auto& glSeg = static_cast<DrawSegmentGL&>(*seg);
+        const auto& mlSeg = glSeg.getSegment();
+
+        if (mlSeg.indexLength == 0) {
+            continue;
+        }
+
+        for (auto& binding : impl->attributeBindings) {
+            if (binding) {
+                binding->vertexOffset = static_cast<uint32_t>(mlSeg.vertexOffset);
+            }
+        }
+
+        if (!glSeg.getVertexArray().isValid()) {
+            auto vertexArray = glContext.createVertexArray();
+            const auto& indexBuffer = static_cast<IndexBufferGL&>(*impl->indexes->getBuffer());
+            vertexArray.bind(glContext, *indexBuffer.buffer, std::move(impl->attributeBindings));
+            assert(vertexArray.isValid());
+            if (vertexArray.isValid()) {
+                glSeg.setVertexArray(std::move(vertexArray));
+            }
+        }
+    };
+
+    impl->buildVertexArray = false;
+    impl->attributeBindings.clear();
+}
+
+void DrawableGL::beginUploadImpl(gfx::UploadPass& uploadPass) {
+    MLN_TRACE_FUNC()
+
+    impl->buildVertexArray = vertexAttributes &&
+                             (vertexAttributes->isDirty() ||
+                              std::any_of(impl->segments.begin(), impl->segments.end(), [](const auto& seg) {
+                                  return !static_cast<const DrawSegmentGL&>(*seg).getVertexArray().isValid();
+                              }));
+
+    if (impl->buildVertexArray) {
         constexpr auto usage = gfx::BufferUsageType::StaticDraw;
 
         // Apply drawable values to shader defaults
@@ -180,15 +229,15 @@ void DrawableGL::upload(gfx::UploadPass& uploadPass) {
         const auto vertexAttributeIndex = static_cast<std::size_t>(indexAttribute ? indexAttribute->getIndex() : -1);
 
         std::vector<std::unique_ptr<gfx::VertexBufferResource>> vertexBuffers;
-        auto bindings = uploadPass.buildAttributeBindings(impl->vertexCount,
-                                                          impl->vertexType,
-                                                          vertexAttributeIndex,
-                                                          impl->vertexData,
-                                                          defaults,
-                                                          overrides,
-                                                          usage,
-                                                          attributeUpdateTime,
-                                                          vertexBuffers);
+        impl->attributeBindings = uploadPass.buildAttributeBindings(impl->vertexCount,
+                                                                    impl->vertexType,
+                                                                    vertexAttributeIndex,
+                                                                    impl->vertexData,
+                                                                    defaults,
+                                                                    overrides,
+                                                                    usage,
+                                                                    attributeUpdateTime,
+                                                                    vertexBuffers);
 
         impl->attributeBuffers = std::move(vertexBuffers);
 
@@ -205,35 +254,6 @@ void DrawableGL::upload(gfx::UploadPass& uploadPass) {
 
             impl->indexes->setBuffer(std::move(buffer));
         }
-
-        // Create a VAO for each group of vertexes described by a segment
-        for (const auto& seg : impl->segments) {
-            MLN_TRACE_ZONE(segment);
-            auto& glSeg = static_cast<DrawSegmentGL&>(*seg);
-            const auto& mlSeg = glSeg.getSegment();
-
-            if (mlSeg.indexLength == 0) {
-                continue;
-            }
-
-            for (auto& binding : bindings) {
-                if (binding) {
-                    binding->vertexOffset = static_cast<uint32_t>(mlSeg.vertexOffset);
-                }
-            }
-
-            if (!glSeg.getVertexArray().isValid()) {
-                auto vertexArray = glContext.createVertexArray();
-                const auto& indexBuffer = static_cast<IndexBufferGL&>(*impl->indexes->getBuffer());
-                vertexArray.bind(glContext, *indexBuffer.buffer, bindings);
-                assert(vertexArray.isValid());
-                if (vertexArray.isValid()) {
-                    glSeg.setVertexArray(std::move(vertexArray));
-                }
-            }
-        }
-
-        attributeUpdateTime = util::MonotonicTimer::now();
     }
 
     const bool texturesNeedUpload = std::any_of(

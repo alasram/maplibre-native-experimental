@@ -16,7 +16,7 @@ namespace vulkan {
 LayerGroup::LayerGroup(int32_t layerIndex_, std::size_t initialCapacity, std::string name_)
     : mbgl::LayerGroup(layerIndex_, initialCapacity, std::move(name_)) {}
 
-void LayerGroup::upload(gfx::UploadPass& uploadPass) {
+void LayerGroup::beginUpload(gfx::UploadPass& uploadPass) {
     if (!enabled) {
         return;
     }
@@ -31,6 +31,10 @@ void LayerGroup::upload(gfx::UploadPass& uploadPass) {
             drawable.upload(uploadPass);
         }
     });
+}
+
+void LayerGroup::endUpload(gfx::UploadPass&) {
+    // TODO add async upload support
 }
 
 void LayerGroup::render(RenderOrchestrator&, PaintParameters& parameters) {
