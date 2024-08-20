@@ -213,7 +213,7 @@ void DrawableGL::beginUploadImpl(gfx::UploadPass& uploadPass) {
     MLN_TRACE_FUNC()
 
     impl->buildVertexArray = vertexAttributes &&
-                             (vertexAttributes->isDirty() ||
+                             (vertexAttributes->isModifiedAfter(attributeUpdateTime) ||
                               std::any_of(impl->segments.begin(), impl->segments.end(), [](const auto& seg) {
                                   return !static_cast<const DrawSegmentGL&>(*seg).getVertexArray().isValid();
                               }));

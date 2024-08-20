@@ -205,12 +205,8 @@ gfx::AttributeBindingArray UploadPass::buildAttributeBindings(
     const gfx::BufferUsageType usage,
     const std::chrono::duration<double> lastUpdate,
     /*out*/ std::vector<std::unique_ptr<gfx::VertexBufferResource>>& outBuffers) {
-<<<<<<< HEAD
-    MLN_TRACE_FUNC();
-=======
     MLN_TRACE_FUNC()
 
->>>>>>> b37833898 (Add instrumentation)
     AttributeBindingArray bindings;
     bindings.resize(defaults.allocatedSize());
 
