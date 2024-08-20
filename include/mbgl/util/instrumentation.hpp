@@ -30,7 +30,7 @@ const void* castGpuIdToTracyPtr(GpuId id) {
 
 #define MLN_ZONE_TEXT(text, size) ZoneText(text, size);
 #define MLN_ZONE_STR(str) ZoneText(str.c_str(), str.size());
-#define MLN_ZONE_VALUE(n) ZoneValue(n);
+#define MLN_ZONE_VALUE(n) // ZoneValue(n);
 
 // constexpr const char* tracyTextureMemoryLabel = "Texture Memory";
 #define MLN_TRACE_ALLOC_TEXTURE(id, size) // TracyAllocN(castGpuIdToTracyPtr(id), size, tracyTextureMemoryLabel);
