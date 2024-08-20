@@ -17,8 +17,7 @@ public:
     TileLayerGroupGL(int32_t layerIndex, std::size_t initialCapacity, std::string name);
     ~TileLayerGroupGL() override {}
 
-    void beginUpload(gfx::UploadPass&) override;
-    void endUpload(gfx::UploadPass&) override;
+    void issueUpload(gfx::UploadPass&) override;
     void render(RenderOrchestrator&, PaintParameters&) override;
 
     const gfx::UniformBufferArray& getUniformBuffers() const override { return uniformBuffers; };
@@ -40,8 +39,7 @@ public:
     LayerGroupGL(int32_t layerIndex, std::size_t initialCapacity, std::string name);
     ~LayerGroupGL() override {}
 
-    void beginUpload(gfx::UploadPass&) override;
-    void endUpload(gfx::UploadPass&) override;
+    void issueUpload(gfx::UploadPass&) override;
     void render(RenderOrchestrator&, PaintParameters&) override;
 
     const gfx::UniformBufferArray& getUniformBuffers() const override { return uniformBuffers; };

@@ -20,7 +20,7 @@ using namespace platform;
 TileLayerGroupGL::TileLayerGroupGL(int32_t layerIndex_, std::size_t initialCapacity, std::string name_)
     : TileLayerGroup(layerIndex_, initialCapacity, std::move(name_)) {}
 
-void TileLayerGroupGL::beginUpload(gfx::UploadPass& uploadPass) {
+void TileLayerGroupGL::issueUpload(gfx::UploadPass& uploadPass) {
     if (!enabled) {
         return;
     }
@@ -41,35 +41,7 @@ void TileLayerGroupGL::beginUpload(gfx::UploadPass& uploadPass) {
         const auto debugGroup = uploadPass.createDebugGroup(labelPtr);
 #endif
 
-        drawableGL.beginUpload(uploadPass);
-    });
-}
-
-void TileLayerGroupGL::endUpload(gfx::UploadPass& uploadPass) {
-    if (!enabled) {
-        return;
-    }
-
-    MLN_TRACE_FUNC()
-    MLN_ZONE_STR(name)
-
-    visitDrawables([&](gfx::Drawable& drawable) {
-        if (!drawable.getEnabled()) {
-            return;
-        }
-
-        auto& drawableGL = static_cast<gl::DrawableGL&>(drawable);
-
-#if !defined(NDEBUG)
-        std::string label;
-        if (const auto& tileID = drawable.getTileID()) {
-            label = drawable.getName() + "/" + util::toString(*tileID);
-        }
-        const auto labelPtr = (label.empty() ? drawable.getName() : label).c_str();
-        const auto debugGroup = uploadPass.createDebugGroup(labelPtr);
-#endif
-
-        drawableGL.endUpload(uploadPass);
+        drawableGL.issueUpload(uploadPass);
     });
 }
 
@@ -192,7 +164,7 @@ void TileLayerGroupGL::unbindUniformBuffers() const {
 LayerGroupGL::LayerGroupGL(int32_t layerIndex_, std::size_t initialCapacity, std::string name_)
     : LayerGroup(layerIndex_, initialCapacity, std::move(name_)) {}
 
-void LayerGroupGL::beginUpload(gfx::UploadPass& uploadPass) {
+void LayerGroupGL::issueUpload(gfx::UploadPass& uploadPass) {
     if (!enabled) {
         return;
     }
@@ -208,27 +180,7 @@ void LayerGroupGL::beginUpload(gfx::UploadPass& uploadPass) {
         const auto debugGroup = uploadPass.createDebugGroup(drawable.getName().c_str());
 #endif
 
-        drawableGL.beginUpload(uploadPass);
-    });
-}
-
-void LayerGroupGL::endUpload(gfx::UploadPass& uploadPass) {
-    if (!enabled) {
-        return;
-    }
-
-    visitDrawables([&](gfx::Drawable& drawable) {
-        if (!drawable.getEnabled()) {
-            return;
-        }
-
-        auto& drawableGL = static_cast<gl::DrawableGL&>(drawable);
-
-#if !defined(NDEBUG)
-        const auto debugGroup = uploadPass.createDebugGroup(drawable.getName().c_str());
-#endif
-
-        drawableGL.endUpload(uploadPass);
+        drawableGL.issueUpload(uploadPass);
     });
 }
 

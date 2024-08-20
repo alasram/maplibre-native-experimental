@@ -231,34 +231,25 @@ void Renderer::Impl::render(const RenderTree& renderTree,
 #if !defined(NDEBUG)
         const auto debugGroup = uploadPass->createDebugGroup("layerGroup-upload");
 #endif
-        {
-            gfx::FreeThreadedUploadBackendScope uploadScope(backend);
+        // Tweakers are run in the upload pass so they can set up uniforms.
+        orchestrator.visitLayerGroups(
+            [&](LayerGroupBase& layerGroup) { layerGroup.runTweakers(renderTree, parameters); });
+        orchestrator.visitDebugLayerGroups(
+            [&](LayerGroupBase& layerGroup) { layerGroup.runTweakers(renderTree, parameters); });
 
-            // Tweakers are run in the upload pass so they can set up uniforms.
-            orchestrator.visitLayerGroups(
-                [&](LayerGroupBase& layerGroup) { layerGroup.runTweakers(renderTree, parameters); });
-            orchestrator.visitDebugLayerGroups(
-                [&](LayerGroupBase& layerGroup) { layerGroup.runTweakers(renderTree, parameters); });
+        // Update the debug layer groups
+        orchestrator.updateDebugLayerGroups(renderTree, parameters);
 
-            // Update the debug layer groups
-            orchestrator.updateDebugLayerGroups(renderTree, parameters);
+        // Give the layers a chance to upload
+        orchestrator.visitLayerGroups([&](LayerGroupBase& layerGroup) { layerGroup.issueUpload(*uploadPass); });
 
-            // Give the layers a chance to upload
-            orchestrator.visitLayerGroups([&](LayerGroupBase& layerGroup) { layerGroup.beginUpload(*uploadPass); });
+        // Give the render targets a chance to upload
+        orchestrator.visitRenderTargets([&](RenderTarget& renderTarget) { renderTarget.issueUpload(*uploadPass); });
 
-            // Give the render targets a chance to upload
-            orchestrator.visitRenderTargets([&](RenderTarget& renderTarget) { renderTarget.beginUpload(*uploadPass); });
-
-            // Upload the Debug layer group
-            orchestrator.visitDebugLayerGroups(
-                [&](LayerGroupBase& layerGroup) { layerGroup.beginUpload(*uploadPass); });
-        }
-
-        // End upload
-        orchestrator.visitLayerGroups([&](LayerGroupBase& layerGroup) { layerGroup.endUpload(*uploadPass); });
-        orchestrator.visitRenderTargets([&](RenderTarget& renderTarget) { renderTarget.endUpload(*uploadPass); });
-        orchestrator.visitDebugLayerGroups([&](LayerGroupBase& layerGroup) { layerGroup.endUpload(*uploadPass); });
+        // Upload the Debug layer group
+        orchestrator.visitDebugLayerGroups([&](LayerGroupBase& layerGroup) { layerGroup.issueUpload(*uploadPass); });
     }
+    { gfx::FreeThreadedUploadBackendScope uploadScope(backend); }
 
     const Size atlasSize = parameters.patternAtlas.getPixelSize();
     const auto& worldSize = parameters.staticData.backendSize;

@@ -17,7 +17,7 @@ namespace vulkan {
 TileLayerGroup::TileLayerGroup(int32_t layerIndex_, std::size_t initialCapacity, std::string name_)
     : mbgl::TileLayerGroup(layerIndex_, initialCapacity, std::move(name_)) {}
 
-void TileLayerGroup::beginUpload(gfx::UploadPass& uploadPass) {
+void TileLayerGroup::issueUpload(gfx::UploadPass& uploadPass) {
     if (!enabled || !getDrawableCount()) {
         return;
     }
@@ -32,10 +32,6 @@ void TileLayerGroup::beginUpload(gfx::UploadPass& uploadPass) {
             drawable.upload(uploadPass);
         }
     });
-}
-
-void TileLayerGroup::endUpload(gfx::UploadPass&) {
-    // TODO add async upload support
 }
 
 void TileLayerGroup::render(RenderOrchestrator&, PaintParameters& parameters) {

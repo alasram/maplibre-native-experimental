@@ -49,10 +49,6 @@ public:
     GLfloat pointSize = 0.0f;
 
     size_t vertexAttrId = 0;
-
-    // Vertex array data
-    bool buildVertexArray = false;
-    gfx::AttributeBindingArray attributeBindings;
 };
 
 struct DrawableGL::DrawSegmentGL final : public gfx::Drawable::DrawSegment {

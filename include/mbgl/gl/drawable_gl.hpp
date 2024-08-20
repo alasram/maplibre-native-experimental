@@ -46,8 +46,7 @@ public:
 
     void setVertexAttrId(const size_t id);
 
-    void beginUpload(gfx::UploadPass&);
-    void endUpload(gfx::UploadPass&);
+    void issueUpload(gfx::UploadPass&);
 
 protected:
     class Impl;
@@ -67,8 +66,6 @@ private:
 
     void bindTextures() const;
     void unbindTextures() const;
-
-    void beginUploadImpl(gfx::UploadPass&);
 };
 
 } // namespace gl
