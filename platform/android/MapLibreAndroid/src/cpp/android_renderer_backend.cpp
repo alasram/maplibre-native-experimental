@@ -88,6 +88,11 @@ void AndroidRendererBackend::beginFreeThreadedUpload() {
     MLN_TRACE_FUNC()
 
     gfx::RendererBackend::beginFreeThreadedUpload();
+
+    if (!supportFreeThreadedUpload()) {
+        return;
+    }
+
     initEglContext();
 
     // Expect the same bound EGL main context to be used on the render thread
