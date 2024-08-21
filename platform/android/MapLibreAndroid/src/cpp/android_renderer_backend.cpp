@@ -79,68 +79,21 @@ void AndroidRendererBackend::setSwapBehavior(SwapBehaviour swapBehaviour_) {
 }
 
 void AndroidRendererBackend::swap() {
+    assert(eglGetCurrentContext() == eglMainCtx && eglMainCtx != EGL_NO_CONTEXT);
+
     if (swapBehaviour == SwapBehaviour::Flush) {
         static_cast<gl::Context&>(getContext()).finish();
     }
 }
 
-void AndroidRendererBackend::beginFreeThreadedUpload() {
+std::shared_ptr<UploadThreadContext> AndroidRendererBackend::createUploadThreadContext() {
     MLN_TRACE_FUNC()
 
-    gfx::RendererBackend::beginFreeThreadedUpload();
-
-    if (!supportFreeThreadedUpload()) {
-        return;
-    }
-
-    initEglContext();
-
-    // Expect the same bound EGL main context to be used on the render thread
-    assert(eglGetCurrentContext() == eglMainCtx && eglMainCtx != EGL_NO_CONTEXT);
-
-    getContext<gl::Context>().flushCommands();
-
-    // TODO Remove this code
-    // -----
-    getContext<gl::Context>().finish();
-    if (eglMakeCurrent(eglDsply, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE) {
-        auto err = "eglMakeCurrent for unbinding main context failed. Error code" + std::to_string(eglGetError());
-        mbgl::Log::Error(mbgl::Event::OpenGL, err);
-        throw std::runtime_error(err);
-    }
-    // -----
+    assert(eglMainCtx != EGL_NO_CONTEXT);
+    return std::make_shared<AndroidUploadThreadContext>(*this, eglDsply, eglConfig, eglMainCtx);
 }
 
-void AndroidRendererBackend::endFreeThreadedUpload() {
-    MLN_TRACE_FUNC()
-
-    if (!supportFreeThreadedUpload()) {
-        gfx::RendererBackend::endFreeThreadedUpload();
-        return;
-    }
-
-    waitForAsyncUpload();
-
-    // TODO Remove this code
-    // -----
-    if (eglMakeCurrent(eglDsply, eglSurf, eglSurf, eglMainCtx) == EGL_FALSE) {
-        auto err = "eglMakeCurrent for binding main context failed. Error code" + std::to_string(eglGetError());
-        mbgl::Log::Error(mbgl::Event::OpenGL, err);
-        throw std::runtime_error(err);
-    }
-    getContext<gl::Context>().finish();
-    // -----
-
-    // The EGL main context is not expected to change on the render thread between beginFreeThreadedUpload and
-    // endFreeThreadedUpload
-    assert(eglGetCurrentContext() == eglMainCtx && eglMainCtx != EGL_NO_CONTEXT);
-
-    getContext<gl::Context>().flushCommands();
-
-    gfx::RendererBackend::endFreeThreadedUpload();
-}
-
-void AndroidRendererBackend::initEglContext() {
+void AndroidRendererBackend::initFreeThreadedUpload() {
     MLN_TRACE_FUNC()
 
     if (eglMainCtx != EGL_NO_CONTEXT) {
@@ -204,19 +157,6 @@ void AndroidRendererBackend::initEglContext() {
         mbgl::Log::Error(mbgl::Event::OpenGL, err);
         throw std::runtime_error(err);
     }
-}
-
-std::shared_ptr<gfx::UploadThreadContext> AndroidRendererBackend::createUploadThreadContext() {
-    MLN_TRACE_FUNC()
-
-    assert(eglMainCtx != EGL_NO_CONTEXT);
-    return std::make_shared<AndroidUploadThreadContext>(*this, eglDsply, eglConfig, eglMainCtx);
-}
-
-void AndroidRendererBackend::waitForAsyncUpload() {
-    MLN_TRACE_FUNC()
-
-    getResourceUploadThreadPool().waitUntilComplete();
 }
 
 AndroidUploadThreadContext::AndroidUploadThreadContext(AndroidRendererBackend& backend_,

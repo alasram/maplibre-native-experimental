@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mbgl/gfx/upload_pass.hpp>
+#include <mbgl/gl/object.hpp>
 #include <mbgl/gl/types.hpp>
 
 namespace mbgl {
@@ -75,6 +76,10 @@ public:
                                   const void* data,
                                   gfx::TexturePixelType,
                                   gfx::TextureChannelDataType) override;
+
+public:
+    UniqueBuffer createUniqueVertexBuffer(const void* data, std::size_t size, gfx::BufferUsageType usage);
+    void updateUniqueVertexBuffer(const UniqueBuffer&, const void* data, std::size_t size);
 
 private:
     gl::CommandEncoder& commandEncoder;

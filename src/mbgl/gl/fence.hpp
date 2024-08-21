@@ -13,6 +13,9 @@ public:
 
     void insert() noexcept;
     bool isSignaled() const;
+    void cpuWait() const;
+    void gpuWait() const;
+    void reset();
 
 private:
     platform::GLsync fence{nullptr};

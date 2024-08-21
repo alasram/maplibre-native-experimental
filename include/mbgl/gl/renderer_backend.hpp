@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mbgl/gfx/renderer_backend.hpp>
-#include <mbgl/gfx/resource_upload_thread_pool.hpp>
+#include <mbgl/gl/resource_upload_thread_pool.hpp>
 #include <mbgl/util/image.hpp>
 #include <mbgl/util/size.hpp>
 #include <mbgl/util/util.hpp>
@@ -14,6 +14,16 @@ namespace gl {
 
 using ProcAddress = void (*)();
 using FramebufferID = uint32_t;
+
+class UploadThreadContext {
+public:
+    UploadThreadContext() = default;
+    virtual ~UploadThreadContext() = default;
+    virtual void createContext() = 0;
+    virtual void destroyContext() = 0;
+    virtual void bindContext() = 0;
+    virtual void unbindContext() = 0;
+};
 
 class RendererBackend : public gfx::RendererBackend {
 public:
@@ -29,7 +39,10 @@ public:
     void initShaders(gfx::ShaderRegistry&, const ProgramParameters& programParameters) override;
 #endif
 
-    gfx::ResourceUploadThreadPool& getResourceUploadThreadPool();
+    virtual bool supportFreeThreadedUpload() const { return false; }
+    virtual void initFreeThreadedUpload() {}
+    virtual std::shared_ptr<UploadThreadContext> createUploadThreadContext() { return nullptr; }
+    gl::ResourceUploadThreadPool& getResourceUploadThreadPool();
 
 protected:
     std::unique_ptr<gfx::Context> createContext() override;
@@ -63,7 +76,7 @@ public:
     void setScissorTest(bool);
 
 private:
-    std::unique_ptr<gfx::ResourceUploadThreadPool> resourceUploadThreadPool;
+    std::unique_ptr<gl::ResourceUploadThreadPool> resourceUploadThreadPool;
 };
 
 } // namespace gl

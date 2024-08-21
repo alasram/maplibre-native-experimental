@@ -150,12 +150,13 @@ void RendererBackend::initShaders(gfx::ShaderRegistry& shaders, const ProgramPar
 }
 #endif
 
-gfx::ResourceUploadThreadPool& RendererBackend::getResourceUploadThreadPool() {
+gl::ResourceUploadThreadPool& RendererBackend::getResourceUploadThreadPool() {
     if (!supportFreeThreadedUpload()) {
         throw std::runtime_error("Parallel resource upload is not supported on this backend");
     }
     if (!resourceUploadThreadPool) {
-        resourceUploadThreadPool = std::make_unique<gfx::ResourceUploadThreadPool>(*this);
+        initFreeThreadedUpload();
+        resourceUploadThreadPool = std::make_unique<gl::ResourceUploadThreadPool>(*this);
     }
     return *resourceUploadThreadPool;
 }

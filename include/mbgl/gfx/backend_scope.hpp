@@ -34,14 +34,5 @@ private:
     bool activated = false;
 };
 
-class FreeThreadedUploadBackendScope {
-public:
-    FreeThreadedUploadBackendScope(RendererBackend&);
-    ~FreeThreadedUploadBackendScope();
-
-private:
-    RendererBackend& backend;
-};
-
 } // namespace gfx
 } // namespace mbgl

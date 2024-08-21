@@ -24,16 +24,6 @@ enum class ContextMode : bool {
     Shared,
 };
 
-class UploadThreadContext {
-public:
-    UploadThreadContext() = default;
-    virtual ~UploadThreadContext() = default;
-    virtual void createContext() = 0;
-    virtual void destroyContext() = 0;
-    virtual void bindContext() = 0;
-    virtual void unbindContext() = 0;
-};
-
 class RendererBackend {
 protected:
     explicit RendererBackend(ContextMode);
@@ -60,13 +50,6 @@ public:
     /// Returns a reference to the default surface that should be rendered on.
     virtual Renderable& getDefaultRenderable() = 0;
 
-    // Check if the backend supports parallel upload of resources
-    virtual bool supportFreeThreadedUpload() const { return false; }
-
-    // Create a new upload context for parallel upload of resources
-    // This function returns nullptr if supportFreeThreadedUpload() returns false
-    virtual std::shared_ptr<UploadThreadContext> createUploadThreadContext() { return nullptr; }
-
 #if MLN_DRAWABLE_RENDERER
     /// One-time shader initialization
     virtual void initShaders(gfx::ShaderRegistry&, const ProgramParameters&) = 0;
@@ -90,27 +73,13 @@ protected:
     virtual void activate() = 0;
     virtual void deactivate() = 0;
 
-    /// beginFreeThreadedUpload prepares the backend context for parallel upload of resources
-    /// The main render thread cannot render until endFreeThreadedUpload is called
-    /// beginFreeThreadedUpload and endFreeThreadedUpload are called, as a matched pair, exclusively through
-    /// FreeThreadedUploadBackendScope, in one situations:
-    ///
-    ///  1. When creating and uploading resources to the GPU.
-    ///     Rendering or creating descriptors for resources are not possible during this upload phase
-    virtual void beginFreeThreadedUpload();
-    virtual void endFreeThreadedUpload();
-
-    bool isFreeThreadedUploadActive() const { return freeThreadedUploadIsActive; }
-
 protected:
     std::unique_ptr<Context> context;
     const ContextMode contextMode;
     std::once_flag initialized;
     TaggedScheduler threadPool;
-    bool freeThreadedUploadIsActive = false;
 
     friend class BackendScope;
-    friend class FreeThreadedUploadBackendScope;
 };
 
 constexpr bool operator==(const RendererBackend& a, const RendererBackend& b) {

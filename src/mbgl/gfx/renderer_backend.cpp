@@ -16,24 +16,10 @@ RendererBackend::RendererBackend(const ContextMode contextMode_, const TaggedSch
 RendererBackend::~RendererBackend() = default;
 
 gfx::Context& RendererBackend::getContext() {
-    if (isFreeThreadedUploadActive()) {
-        assert(context);
-        return *context;
-    }
     assert(BackendScope::exists());
     std::call_once(initialized, [this] { context = createContext(); });
     assert(context);
     return *context;
-}
-
-void RendererBackend::beginFreeThreadedUpload() {
-    assert(freeThreadedUploadIsActive == false);
-    freeThreadedUploadIsActive = true;
-}
-
-void RendererBackend::endFreeThreadedUpload() {
-    assert(freeThreadedUploadIsActive == true);
-    freeThreadedUploadIsActive = false;
 }
 
 } // namespace gfx

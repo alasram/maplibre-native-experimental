@@ -1097,6 +1097,8 @@ if(MLN_WITH_OPENGL)
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/renderer_backend.cpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/resource_pool.cpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/resource_pool.hpp
+            ${PROJECT_SOURCE_DIR}/src/mbgl/gl/resource_upload_thread_pool.cpp
+            ${PROJECT_SOURCE_DIR}/src/mbgl/gl/resource_upload_thread_pool.hpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/state.hpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/texture.cpp
             ${PROJECT_SOURCE_DIR}/src/mbgl/gl/texture.hpp

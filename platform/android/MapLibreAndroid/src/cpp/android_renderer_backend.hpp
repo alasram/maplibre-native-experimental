@@ -8,11 +8,31 @@
 namespace mbgl {
 namespace android {
 
+#define ANDROID_RENDER_BACKEND_DISABLE_SHARED_EGL_CONTEXTS
+
 #ifdef ANDROID_RENDER_BACKEND_DISABLE_SHARED_EGL_CONTEXTS
 #define ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS false
 #else
 #define ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS true
 #endif
+
+class AndroidUploadThreadContext : public gl::UploadThreadContext {
+public:
+    AndroidUploadThreadContext(AndroidRendererBackend&, EGLDisplay, EGLConfig, EGLContext);
+    ~AndroidUploadThreadContext() override;
+    void createContext() override;
+    void destroyContext() override;
+    void bindContext() override;
+    void unbindContext() override;
+
+private:
+    AndroidRendererBackend& backend;
+    EGLDisplay display = EGL_NO_DISPLAY;
+    EGLConfig config;
+    EGLContext mainContext = EGL_NO_CONTEXT;
+    EGLContext sharedContext = EGL_NO_CONTEXT;
+    EGLSurface surface = EGL_NO_SURFACE;
+};
 
 class AndroidRendererBackend : public gl::RendererBackend, public mbgl::gfx::Renderable {
 public:
@@ -31,7 +51,8 @@ public:
     void swap();
 
     bool supportFreeThreadedUpload() const override { return ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS; }
-    std::shared_ptr<gfx::UploadThreadContext> createUploadThreadContext() override;
+    std::shared_ptr<UploadThreadContext> createUploadThreadContext() override;
+    void initFreeThreadedUpload() override;
 
 private:
     SwapBehaviour swapBehaviour = SwapBehaviour::NoFlush;
@@ -40,9 +61,6 @@ private:
     EGLDisplay eglDsply = EGL_NO_DISPLAY;
     EGLSurface eglSurf = EGL_NO_SURFACE;
     EGLConfig eglConfig;
-
-    void initEglContext();
-    void waitForAsyncUpload();
 
     // mbgl::gfx::RendererBackend implementation
 public:
@@ -56,31 +74,10 @@ protected:
         // no-op
     }
 
-    void beginFreeThreadedUpload() override;
-    void endFreeThreadedUpload() override;
-
     // mbgl::gl::RendererBackend implementation
 protected:
     mbgl::gl::ProcAddress getExtensionFunctionPointer(const char*) override;
     void updateAssumedState() override;
-};
-
-class AndroidUploadThreadContext : public gfx::UploadThreadContext {
-public:
-    AndroidUploadThreadContext(AndroidRendererBackend&, EGLDisplay, EGLConfig, EGLContext);
-    ~AndroidUploadThreadContext() override;
-    void createContext() override;
-    void destroyContext() override;
-    void bindContext() override;
-    void unbindContext() override;
-
-private:
-    AndroidRendererBackend& backend;
-    EGLDisplay display = EGL_NO_DISPLAY;
-    EGLConfig config;
-    EGLContext mainContext = EGL_NO_CONTEXT;
-    EGLContext sharedContext = EGL_NO_CONTEXT;
-    EGLSurface surface = EGL_NO_SURFACE;
 };
 
 } // namespace android

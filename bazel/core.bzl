@@ -889,6 +889,8 @@ MLN_OPENGL_SOURCE = [
     "src/mbgl/gl/renderer_backend.cpp",
     "src/mbgl/gl/resource_pool.cpp",
     "src/mbgl/gl/resource_pool.hpp",
+    "src/mbgl/gl/resource_upload_thread_pool.cpp",
+    "src/mbgl/gl/resource_upload_thread_pool.hpp",
     "src/mbgl/gl/state.hpp",
     "src/mbgl/gl/texture.cpp",
     "src/mbgl/gl/texture.hpp",
