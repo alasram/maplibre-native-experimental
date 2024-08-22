@@ -861,6 +861,8 @@ MLN_CORE_HEADERS = [
 MLN_OPENGL_SOURCE = [
     "src/mbgl/gl/attribute.cpp",
     "src/mbgl/gl/attribute.hpp",
+    "src/mbgl/gl/buffer_resource.cpp",
+    "src/mbgl/gl/buffer_resource.hpp",
     "src/mbgl/gl/command_encoder.cpp",
     "src/mbgl/gl/command_encoder.hpp",
     "src/mbgl/gl/context.cpp",

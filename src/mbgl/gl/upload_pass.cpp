@@ -27,10 +27,8 @@ using namespace platform;
 
 namespace {
 
-UniqueBuffer createUniqueVertexBuffer(gl::Context& mainContext,
-                                      const void* data,
-                                      std::size_t size,
-                                      gfx::BufferUsageType usage) {
+UniqueBuffer createUniqueBuffer(
+    gl::Context& mainContext, const void* data, std::size_t size, gfx::BufferUsageType usage, GLenum bufferGlTarget) {
     MLN_TRACE_FUNC()
 
     // mainContext is the main render thread context and is passed to UniqueBuffer deleter.
@@ -50,14 +48,14 @@ UniqueBuffer createUniqueVertexBuffer(gl::Context& mainContext,
     return UniqueBuffer{std::move(id), {mainContext}};
 }
 
-void updateUniqueVertexBuffer(const UniqueBuffer& buffer, const void* data, std::size_t size) {
+void updateUniqueBuffer(const UniqueBuffer& buffer, const void* data, std::size_t size, GLenum bufferGlTarget) {
     MLN_TRACE_FUNC()
 
-    // Similar to createUniqueVertexBuffer the caller must set commandEncoder.context.vertexBuffer when
+    // Similar to createUniqueBuffer the caller must set commandEncoder.context.vertexBuffer when
     // it is run in the main render thread context
 
-    MBGL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, buffer.get()));
-    MBGL_CHECK_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, size, data));
+    MBGL_CHECK_ERROR(glBindBuffer(bufferGlTarget, buffer.get()));
+    MBGL_CHECK_ERROR(glBufferSubData(bufferGlTarget, 0, size, data));
 }
 
 } // namespace
@@ -81,16 +79,16 @@ std::unique_ptr<gfx::VertexBufferResource> UploadPass::createVertexBufferResourc
     if (backend.supportFreeThreadedUpload()) {
         auto result = std::make_unique<gl::VertexBufferResource>(
             [&](int size, gfx::BufferUsageType usage, const void* data) {
-                return createUniqueVertexBuffer(ctx, data, size, usage);
+                return createUniqueBuffer(ctx, data, size, usage, GL_ARRAY_BUFFER);
             },
             [&](const UniqueBuffer& buffer, int size, const void* data) {
-                updateUniqueVertexBuffer(buffer, data, size);
+                updateUniqueBuffer(buffer, data, size, GL_ARRAY_BUFFER);
             });
         result->asyncAlloc(backend.getResourceUploadThreadPool(), size, usage, data);
         return result;
 
     } else {
-        UniqueBuffer result = createUniqueVertexBuffer(ctx, data, size, usage);
+        UniqueBuffer result = createUniqueBuffer(ctx, data, size, usage, GL_ARRAY_BUFFER);
         ctx.vertexBuffer = result;
         return std::make_unique<gl::VertexBufferResource>(std::move(result), static_cast<int>(size));
     }
@@ -113,8 +111,8 @@ void UploadPass::updateVertexBufferResource(gfx::VertexBufferResource& resource,
         glResource.asyncUpdate(backend.getResourceUploadThreadPool(), size, data);
     } else {
         const UniqueBuffer& buffer = glResource.pickBuffer();
-        commandEncoder.context.vertexBuffer = buffer;
-        updateUniqueVertexBuffer(buffer, data, size);
+        ctx.vertexBuffer = buffer;
+        updateUniqueBuffer(buffer, data, size, GL_ARRAY_BUFFER);
     }
 }
 
@@ -124,26 +122,54 @@ std::unique_ptr<gfx::IndexBufferResource> UploadPass::createIndexBufferResource(
                                                                                 bool /*persistent*/) {
     MLN_TRACE_FUNC()
 
-    BufferID id = 0;
-    MBGL_CHECK_ERROR(glGenBuffers(1, &id));
-    commandEncoder.context.renderingStats().numBuffers++;
-    commandEncoder.context.renderingStats().memIndexBuffers += static_cast<int>(size);
-    // NOLINTNEXTLINE(performance-move-const-arg)
-    UniqueBuffer result{std::move(id), {commandEncoder.context}};
-    commandEncoder.context.bindVertexArray = 0;
-    commandEncoder.context.globalVertexArrayState.indexBuffer = result;
-    MBGL_CHECK_ERROR(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, Enum<gfx::BufferUsageType>::to(usage)));
-    return std::make_unique<gl::IndexBufferResource>(std::move(result), static_cast<int>(size));
+    auto& ctx = commandEncoder.context;
+    auto& backend = ctx.getBackend();
+
+    ctx.renderingStats().numBuffers++;
+    ctx.renderingStats().memIndexBuffers += static_cast<int>(size);
+
+    if (backend.supportFreeThreadedUpload()) {
+        auto result = std::make_unique<gl::IndexBufferResource>(
+            [&](int size, gfx::BufferUsageType usage, const void* data) {
+                return createUniqueBuffer(ctx, data, size, usage, GL_ELEMENT_ARRAY_BUFFER);
+            },
+            [&](const UniqueBuffer& buffer, int size, const void* data) {
+                updateUniqueBuffer(buffer, data, size, GL_ELEMENT_ARRAY_BUFFER);
+            });
+        result->asyncAlloc(backend.getResourceUploadThreadPool(), size, usage, data);
+        return result;
+
+    } else {
+        UniqueBuffer result = createUniqueBuffer(ctx, data, size, usage, GL_ARRAY_BUFFER);
+        ctx.bindVertexArray = 0;
+        ctx.globalVertexArrayState.indexBuffer = result;
+        return std::make_unique<gl::IndexBufferResource>(std::move(result), static_cast<int>(size));
+    }
 }
 
 void UploadPass::updateIndexBufferResource(gfx::IndexBufferResource& resource, const void* data, std::size_t size) {
     MLN_TRACE_FUNC()
 
-    // Be sure to unbind any existing vertex array object before binding the
-    // index buffer so that we don't mess up another VAO
-    commandEncoder.context.bindVertexArray = 0;
-    commandEncoder.context.globalVertexArrayState.indexBuffer = static_cast<gl::IndexBufferResource&>(resource).buffer;
-    MBGL_CHECK_ERROR(glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, size, data));
+    auto& ctx = commandEncoder.context;
+    auto& backend = ctx.getBackend();
+    auto& glResource = static_cast<gl::IndexBufferResource&>(resource);
+    assert(size <= glResource.getByteSize());
+
+    if (backend.supportFreeThreadedUpload()) {
+        if (glResource.isAsyncPending()) {
+            // This happens if an allocation is allocated and then followed with an update
+            // This also happens is an uploaded resource in a previous frame has not been used
+            glResource.wait();
+        }
+        glResource.asyncUpdate(backend.getResourceUploadThreadPool(), size, data);
+    } else {
+        const UniqueBuffer& buffer = glResource.pickBuffer();
+        // Be sure to unbind any existing vertex array object before binding the
+        // index buffer so that we don't mess up another VAO
+        ctx.bindVertexArray = 0;
+        ctx.globalVertexArrayState.indexBuffer = buffer;
+        updateUniqueBuffer(buffer, data, size, GL_ARRAY_BUFFER);
+    }
 }
 
 std::unique_ptr<gfx::TextureResource> UploadPass::createTextureResource(const Size size,
