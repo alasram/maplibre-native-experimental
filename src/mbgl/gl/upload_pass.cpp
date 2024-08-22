@@ -71,7 +71,7 @@ void UploadPass::updateVertexBufferResource(gfx::VertexBufferResource& resource,
         glResource.asyncUpdate(backend.getResourceUploadThreadPool(), size, data);
 
     } else {
-        const UniqueBuffer& buffer = glResource.getBuffer();
+        const UniqueBuffer& buffer = glResource.pickBuffer();
         commandEncoder.context.vertexBuffer = buffer;
         updateUniqueVertexBuffer(buffer, data, size);
     }

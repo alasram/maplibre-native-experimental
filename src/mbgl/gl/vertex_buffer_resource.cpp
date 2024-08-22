@@ -51,7 +51,7 @@ VertexBufferResource::~VertexBufferResource() noexcept {
     assert(stats.memVertexBuffers >= 0);
 }
 
-const UniqueBuffer& VertexBufferResource::getBuffer() const {
+const UniqueBuffer& VertexBufferResource::pickBuffer() const {
     // wait must be called first
     assert(asyncUploadRequested == false);
     assert(asyncUploadIssued == false);
@@ -62,7 +62,7 @@ const UniqueBuffer& VertexBufferResource::getBuffer() const {
 
 const UniqueBuffer& VertexBufferResource::waitAndGetBuffer() {
     wait();
-    return getBuffer();
+    return pickBuffer();
 }
 
 void VertexBufferResource::asyncAlloc(ResourceUploadThreadPool& threadPool,

@@ -33,8 +33,8 @@ public:
     int getByteSize() const { return byteSize; }
 
     // Access the buffer
-    // wait() must be called before getBuffer() if the buffer is pending an async upload
-    const UniqueBuffer& getBuffer() const;
+    // wait() must be called before pickBuffer() if the buffer is pending an async upload
+    const UniqueBuffer& pickBuffer() const;
 
     // Access the buffer. First call wait() if the buffer is pending an async upload
     const UniqueBuffer& waitAndGetBuffer();
