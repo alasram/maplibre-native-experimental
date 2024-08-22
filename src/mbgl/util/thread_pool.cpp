@@ -23,15 +23,16 @@ void ThreadedSchedulerBase::terminate() {
 
 std::thread ThreadedSchedulerBase::makeSchedulerThread(size_t index,
                                                        bool gatherTasks,
-                                                       std::function<ThreadCallbacks()> callbacksGenerator) {
-    return std::thread([this, index, gatherTasks, callbacksGen = std::move(callbacksGenerator)] {
+                                                       std::function<ThreadCallbacks()> callbacksGenerator,
+                                                       const char* threadNamePrefix) {
+    return std::thread([this, index, gatherTasks, callbacksGen = std::move(callbacksGenerator), threadNamePrefix] {
         auto& settings = platform::Settings::getInstance();
         auto value = settings.get(platform::EXPERIMENTAL_THREAD_PRIORITY_WORKER);
         if (auto* priority = value.getDouble()) {
             platform::setCurrentThreadPriority(*priority);
         }
 
-        platform::setCurrentThreadName("Worker " + util::toString(index + 1));
+        platform::setCurrentThreadName(threadNamePrefix + util::toString(index + 1));
         platform::attachThread();
 
         owningThreadPool.set(this);

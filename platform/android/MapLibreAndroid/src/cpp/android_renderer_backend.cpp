@@ -79,14 +79,12 @@ void AndroidRendererBackend::setSwapBehavior(SwapBehaviour swapBehaviour_) {
 }
 
 void AndroidRendererBackend::swap() {
-    assert(eglGetCurrentContext() == eglMainCtx && eglMainCtx != EGL_NO_CONTEXT);
-
     if (swapBehaviour == SwapBehaviour::Flush) {
         static_cast<gl::Context&>(getContext()).finish();
     }
 }
 
-std::shared_ptr<UploadThreadContext> AndroidRendererBackend::createUploadThreadContext() {
+std::shared_ptr<gl::UploadThreadContext> AndroidRendererBackend::createUploadThreadContext() {
     MLN_TRACE_FUNC()
 
     assert(eglMainCtx != EGL_NO_CONTEXT);
@@ -260,32 +258,11 @@ void AndroidUploadThreadContext::destroyContext() {
 void AndroidUploadThreadContext::bindContext() {
     // Expect a persistently bound EGL shared context
     assert(eglGetCurrentContext() == sharedContext && sharedContext != EGL_NO_CONTEXT);
-
-    // TODO Remove this code
-    // -----
-    if (eglMakeCurrent(display, surface, surface, sharedContext) == EGL_FALSE) {
-        auto err = "eglMakeCurrent for shared context failed. Error code" + std::to_string(eglGetError());
-        mbgl::Log::Error(mbgl::Event::OpenGL, err);
-        throw std::runtime_error(err);
-    }
-    backend.getContext<gl::Context>().finish();
-    // -----
 }
 
 void AndroidUploadThreadContext::unbindContext() {
     // Expect a persistently bound EGL shared context
     assert(eglGetCurrentContext() == sharedContext && sharedContext != EGL_NO_CONTEXT);
-    backend.getContext<gl::Context>().flushCommands();
-
-    // TODO Remove this code
-    // -----
-    backend.getContext<gl::Context>().finish();
-    if (eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE) {
-        auto err = "eglMakeCurrent for unbinding shared context failed. Error code" + std::to_string(eglGetError());
-        mbgl::Log::Error(mbgl::Event::OpenGL, err);
-        throw std::runtime_error(err);
-    }
-    // -----
 }
 
 } // namespace android

@@ -63,9 +63,10 @@ protected:
     // in which case one gathering thread starves the other threads in the pool
     // callbackGenerator is optional
     std::thread makeSchedulerThread(
-        size_t index, bool gatherTasks = true, std::function<ThreadCallbacks()> callbacksGenerator = []() {
-            return ThreadCallbacks{};
-        });
+        size_t index,
+        bool gatherTasks = true,
+        std::function<ThreadCallbacks()> callbacksGenerator = []() { return ThreadCallbacks{}; },
+        const char* threadNamePrefix = "Worker");
 
     /// @brief Wait until there's nothing pending or in process
     /// Must not be called from a task provided to this scheduler.
@@ -116,10 +117,11 @@ public:
     ThreadedScheduler(
         std::size_t n,
         bool gatherTasks = true,
-        std::function<ThreadCallbacks()> callbacksGenerator = []() { return ThreadCallbacks{}; })
+        std::function<ThreadCallbacks()> callbacksGenerator = []() { return ThreadCallbacks{}; },
+        const char* threadNamePrefix = "Worker")
         : threads(n) {
         for (std::size_t i = 0u; i < threads.size(); ++i) {
-            threads[i] = makeSchedulerThread(i, gatherTasks, callbacksGenerator);
+            threads[i] = makeSchedulerThread(i, gatherTasks, callbacksGenerator, threadNamePrefix);
         }
     }
 

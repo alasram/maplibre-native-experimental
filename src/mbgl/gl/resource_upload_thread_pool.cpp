@@ -51,7 +51,7 @@ std::function<ThreadCallbacks()> makeThreadCallbacks(RendererBackend& backend) {
 } // namespace
 
 ResourceUploadThreadPool::ResourceUploadThreadPool(RendererBackend& backend)
-    : ThreadedScheduler(numberOfResourceUploadThreads(), false, makeThreadCallbacks(backend)) {}
+    : ThreadedScheduler(numberOfResourceUploadThreads(), false, makeThreadCallbacks(backend), "UploadGL") {}
 
 } // namespace gl
 } // namespace mbgl

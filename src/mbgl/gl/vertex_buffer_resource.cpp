@@ -80,7 +80,7 @@ void VertexBufferResource::asyncAlloc(ResourceUploadThreadPool& threadPool,
     auto& cmd = asyncUploadCommands;
     assert(cmd.data.empty());
     assert(cmd.type == BufferAsyncUploadCommandType::None);
-    assert(byteSize = 0);
+    assert(byteSize == 0);
     byteSize = size;
     cmd.type = BufferAsyncUploadCommandType::Alloc;
     cmd.dataSize = size;
