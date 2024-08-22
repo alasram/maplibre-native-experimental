@@ -8,12 +8,10 @@
 namespace mbgl {
 namespace android {
 
-// #define ANDROID_RENDER_BACKEND_DISABLE_SHARED_EGL_CONTEXTS
-
-#ifdef ANDROID_RENDER_BACKEND_DISABLE_SHARED_EGL_CONTEXTS
-#define ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS false
+#ifdef MLN_ANDROID_RENDER_BACKEND_DISABLE_SHARED_EGL_CONTEXTS
+#define MLN_ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS false
 #else
-#define ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS true
+#define MLN_ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS true
 #endif
 
 class AndroidRendererBackend : public gl::RendererBackend, public mbgl::gfx::Renderable {
@@ -32,7 +30,7 @@ public:
     void setSwapBehavior(SwapBehaviour swapBehaviour);
     void swap();
 
-    bool supportFreeThreadedUpload() const override { return ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS; }
+    bool supportFreeThreadedUpload() const override { return MLN_ANDROID_RENDER_BACKEND_SHARED_EGL_CONTEXTS; }
     std::shared_ptr<gl::UploadThreadContext> createUploadThreadContext() override;
     void initFreeThreadedUpload() override;
 

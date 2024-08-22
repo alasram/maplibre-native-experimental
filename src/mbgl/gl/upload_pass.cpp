@@ -25,6 +25,43 @@ namespace gl {
 
 using namespace platform;
 
+namespace {
+
+UniqueBuffer createUniqueVertexBuffer(gl::Context& mainContext,
+                                      const void* data,
+                                      std::size_t size,
+                                      gfx::BufferUsageType usage) {
+    MLN_TRACE_FUNC()
+
+    // mainContext is the main render thread context and is passed to UniqueBuffer deleter.
+    // only the main context deletes resources. Shared contexts only upload resources.
+
+    // Note that we call glBindBuffer instead of setting commandEncoder.context.vertexBuffer
+    // This is because this function can be used in shared contexts, e.g. shared EGL contexts.
+    // States aren't tracked in shared contexts. When this function is called in the main
+    // render thread context then the caller must set commandEncoder.context.vertexBuffer
+
+    BufferID id = 0;
+    MBGL_CHECK_ERROR(glGenBuffers(1, &id));
+    MBGL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, id));
+    MBGL_CHECK_ERROR(glBufferData(GL_ARRAY_BUFFER, size, data, Enum<gfx::BufferUsageType>::to(usage)));
+
+    // NOLINTNEXTLINE(performance-move-const-arg)
+    return UniqueBuffer{std::move(id), {mainContext}};
+}
+
+void updateUniqueVertexBuffer(const UniqueBuffer& buffer, const void* data, std::size_t size) {
+    MLN_TRACE_FUNC()
+
+    // Similar to createUniqueVertexBuffer the caller must set commandEncoder.context.vertexBuffer when
+    // it is run in the main render thread context
+
+    MBGL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, buffer.get()));
+    MBGL_CHECK_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, size, data));
+}
+
+} // namespace
+
 UploadPass::UploadPass(gl::CommandEncoder& commandEncoder_, const char* name)
     : commandEncoder(commandEncoder_),
       debugGroup(commandEncoder.createDebugGroup(name)) {}
@@ -44,7 +81,7 @@ std::unique_ptr<gfx::VertexBufferResource> UploadPass::createVertexBufferResourc
     if (backend.supportFreeThreadedUpload()) {
         auto result = std::make_unique<gl::VertexBufferResource>(
             [&](int size, gfx::BufferUsageType usage, const void* data) {
-                return createUniqueVertexBuffer(data, size, usage);
+                return createUniqueVertexBuffer(ctx, data, size, usage);
             },
             [&](const UniqueBuffer& buffer, int size, const void* data) {
                 updateUniqueVertexBuffer(buffer, data, size);
@@ -53,7 +90,7 @@ std::unique_ptr<gfx::VertexBufferResource> UploadPass::createVertexBufferResourc
         return result;
 
     } else {
-        UniqueBuffer result = createUniqueVertexBuffer(data, size, usage);
+        UniqueBuffer result = createUniqueVertexBuffer(ctx, data, size, usage);
         ctx.vertexBuffer = result;
         return std::make_unique<gl::VertexBufferResource>(std::move(result), static_cast<int>(size));
     }
@@ -68,8 +105,12 @@ void UploadPass::updateVertexBufferResource(gfx::VertexBufferResource& resource,
     assert(size <= glResource.getByteSize());
 
     if (backend.supportFreeThreadedUpload()) {
+        if (glResource.isAsyncPending()) {
+            // This happens if an allocation is allocated and then followed with an update
+            // This also happens is an uploaded resource in a previous frame has not been used
+            glResource.wait();
+        }
         glResource.asyncUpdate(backend.getResourceUploadThreadPool(), size, data);
-
     } else {
         const UniqueBuffer& buffer = glResource.pickBuffer();
         commandEncoder.context.vertexBuffer = buffer;
@@ -368,32 +409,6 @@ const gfx::Context& UploadPass::getContext() const {
     return commandEncoder.context;
 }
 #endif
-
-UniqueBuffer UploadPass::createUniqueVertexBuffer(const void* data, std::size_t size, gfx::BufferUsageType usage) {
-    MLN_TRACE_FUNC()
-
-    // Note that we call glBindBuffer instead of setting commandEncoder.context.vertexBuffer
-    // This is because this function can be used in shared contexts, e.g. shared EGL contexts.
-    // States aren't tracked in shared contexts. When this function is called in the main
-    // render thread context then the caller must set commandEncoder.context.vertexBuffer
-
-    BufferID id = 0;
-    MBGL_CHECK_ERROR(glGenBuffers(1, &id));
-    MBGL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, id));
-    MBGL_CHECK_ERROR(glBufferData(GL_ARRAY_BUFFER, size, data, Enum<gfx::BufferUsageType>::to(usage)));
-    // NOLINTNEXTLINE(performance-move-const-arg)
-    return UniqueBuffer{std::move(id), {commandEncoder.context}};
-}
-
-void UploadPass::updateUniqueVertexBuffer(const UniqueBuffer& buffer, const void* data, std::size_t size) {
-    MLN_TRACE_FUNC()
-
-    // Similar to createUniqueVertexBuffer the caller must set commandEncoder.context.vertexBuffer when
-    // it is run in the main render thread context
-
-    MBGL_CHECK_ERROR(glBindBuffer(GL_ARRAY_BUFFER, buffer.get()));
-    MBGL_CHECK_ERROR(glBufferSubData(GL_ARRAY_BUFFER, 0, size, data));
-}
 
 } // namespace gl
 } // namespace mbgl

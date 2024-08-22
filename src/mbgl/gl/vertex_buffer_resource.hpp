@@ -52,6 +52,8 @@ public:
     // Wait for the async upload to complete
     void wait();
 
+    bool isAsyncPending() const { return asyncUploadRequested; }
+
 private:
     enum class BufferAsyncUploadCommandType : uint8_t {
         Alloc,

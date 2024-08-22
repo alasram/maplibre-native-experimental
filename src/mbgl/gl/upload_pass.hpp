@@ -77,10 +77,6 @@ public:
                                   gfx::TexturePixelType,
                                   gfx::TextureChannelDataType) override;
 
-public:
-    UniqueBuffer createUniqueVertexBuffer(const void* data, std::size_t size, gfx::BufferUsageType usage);
-    void updateUniqueVertexBuffer(const UniqueBuffer&, const void* data, std::size_t size);
-
 private:
     gl::CommandEncoder& commandEncoder;
     const gfx::DebugGroup<gfx::CommandEncoder> debugGroup;

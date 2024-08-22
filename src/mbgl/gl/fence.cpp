@@ -31,11 +31,16 @@ Fence::~Fence() {
     reset();
 }
 
-void Fence::insert() noexcept {
+void Fence::insert() {
     MLN_TRACE_FUNC()
 
     assert(!fence);
     fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    if (!fence) {
+        auto err = "glFenceSync failed. " + glErrors();
+        Log::Error(Event::OpenGL, err);
+        throw std::runtime_error(err);
+    }
 }
 
 bool Fence::isSignaled() const {
@@ -115,7 +120,7 @@ void Fence::gpuWait() const {
     MBGL_CHECK_ERROR(glWaitSync(fence, 0, GL_TIMEOUT_IGNORED));
 }
 
-void Fence::reset() {
+void Fence::reset() noexcept {
     MLN_TRACE_FUNC()
 
     if (fence) {

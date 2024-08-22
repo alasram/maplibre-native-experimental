@@ -8,6 +8,8 @@
 namespace mbgl {
 namespace gl {
 
+using namespace platform;
+
 VertexBufferResource::VertexBufferResource(UniqueBuffer&& buffer_, int byteSize_)
     : buffer(std::make_unique<UniqueBuffer>(std::move(buffer_))),
       byteSize(byteSize_) {
@@ -36,6 +38,10 @@ VertexBufferResource::VertexBufferResource(UniqueBuffer&& buffer_,
 VertexBufferResource::~VertexBufferResource() noexcept {
     // We expect the resource to own a buffer at destruction time
     assert(buffer);
+    if (asyncUploadRequested) {
+        // Resource created but never used
+        wait();
+    }
     // No pending async upload
     assert(asyncUploadRequested == false);
     assert(asyncUploadCommands.data.empty());
@@ -114,17 +120,19 @@ void VertexBufferResource::asyncUpdate(ResourceUploadThreadPool& threadPool, int
 }
 
 void VertexBufferResource::wait() {
+    std::unique_lock<std::mutex> lk(asyncUploadMutex);
     if (!asyncUploadRequested) {
         return;
     }
     if (!asyncUploadIssued) {
-        std::unique_lock<std::mutex> lk(asyncUploadMutex);
         asyncUploadConditionVar.wait(lk, [&] { return asyncUploadIssued; });
     }
     assert(asyncUploadCommands.data.empty());
     assert(asyncUploadCommands.type == BufferAsyncUploadCommandType::None);
+#ifdef MLN_RENDER_BACKEND_USE_UPLOAD_GL_FENCE
     gpuFence.gpuWait();
     gpuFence.reset();
+#endif
     asyncUploadIssued = false;
     asyncUploadRequested = false;
 }
@@ -147,12 +155,17 @@ void VertexBufferResource::issueAsyncUpload() {
             assert(false);
             break;
     }
+#ifdef MLN_RENDER_BACKEND_USE_UPLOAD_GL_FENCE
     gpuFence.insert();
+#else
+    MBGL_CHECK_ERROR(glFlush());
+#endif
 
     cmd.type = BufferAsyncUploadCommandType::None;
     cmd.dataSize = 0;
     cmd.data.clear();
     asyncUploadIssued = true;
+
     asyncUploadConditionVar.notify_all();
 }
 
