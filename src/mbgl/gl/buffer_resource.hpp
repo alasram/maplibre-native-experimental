@@ -24,9 +24,6 @@ public:
     // Create a non-owning vertex buffer resource
     BufferResource(AsyncAllocCallback, AsyncUpdateCallback);
 
-    // Create a vertex buffer resource that takes ownership of buffer_
-    BufferResource(UniqueBuffer&& buffer_, int byteSize_, AsyncUpdateCallback);
-
     virtual ~BufferResource() noexcept;
 
     int getByteSize() const { return byteSize; }

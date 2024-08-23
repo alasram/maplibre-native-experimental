@@ -16,10 +16,7 @@ public:
     VertexBufferResource(UniqueBuffer&& buffer_, int byteSize_);
 
     // Create a non-owning vertex buffer resource
-    VertexBufferResource(AsyncAllocCallback alloc, AsyncUpdateCallback update);
-
-    // Create a vertex buffer resource that takes ownership of buffer_
-    VertexBufferResource(UniqueBuffer&& buffer_, int byteSize_, AsyncUpdateCallback update);
+    VertexBufferResource(AsyncAllocCallback alloc, AsyncUpdateCallback update, int byteSize_);
 
     ~VertexBufferResource() noexcept override;
 

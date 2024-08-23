@@ -84,7 +84,8 @@ std::unique_ptr<gfx::VertexBufferResource> UploadPass::createVertexBufferResourc
             },
             [&](const UniqueBuffer& buffer, int size, const void* data) {
                 updateUniqueBuffer(buffer, data, size, bufferGlTarget);
-            });
+            },
+            size);
         result->asyncAlloc(backend.getResourceUploadThreadPool(), size, usage, data);
         return result;
 
@@ -138,7 +139,8 @@ std::unique_ptr<gfx::IndexBufferResource> UploadPass::createIndexBufferResource(
             },
             [&](const UniqueBuffer& buffer, int size, const void* data) {
                 updateUniqueBuffer(buffer, data, size, bufferGlTarget);
-            });
+            },
+            size);
         result->asyncAlloc(backend.getResourceUploadThreadPool(), size, usage, data);
         return result;
 

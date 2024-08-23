@@ -22,23 +22,9 @@ BufferResource::BufferResource(AsyncAllocCallback asyncAllocCallback_, AsyncUpda
     assert(asyncAllocCallback);
 }
 
-BufferResource::BufferResource(UniqueBuffer&& buffer_, int byteSize_, AsyncUpdateCallback asyncUpdateCallback_)
-    : buffer(std::make_unique<UniqueBuffer>(std::move(buffer_))),
-      byteSize(byteSize_),
-      asyncUpdateCallback(std::move(asyncUpdateCallback_)) {
-    assert(buffer);
-    assert(asyncUpdateCallback);
-}
-
 BufferResource::~BufferResource() noexcept {
-    MLN_TRACE_FUNC()
-
     // We expect the resource to own a buffer at destruction time
     assert(buffer);
-    if (asyncUploadRequested) {
-        // Resource created but never used
-        wait();
-    }
     // No pending async upload
     assert(asyncUploadRequested == false);
     assert(asyncUploadCommands.data.empty());

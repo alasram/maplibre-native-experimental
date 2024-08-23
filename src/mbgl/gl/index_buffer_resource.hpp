@@ -15,10 +15,7 @@ public:
     IndexBufferResource(UniqueBuffer&& buffer_, int byteSize_);
 
     // Create a non-owning buffer resource
-    IndexBufferResource(AsyncAllocCallback alloc, AsyncUpdateCallback update);
-
-    // Create a buffer resource that takes ownership of buffer_
-    IndexBufferResource(UniqueBuffer&& buffer_, int byteSize_, AsyncUpdateCallback update);
+    IndexBufferResource(AsyncAllocCallback alloc, AsyncUpdateCallback update, int byteSize_);
 
     ~IndexBufferResource() noexcept override;
 };
