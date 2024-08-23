@@ -133,14 +133,6 @@ void DrawableGL::unbindUniformBuffers() const {
     }
 }
 
-struct IndexBufferGL : public gfx::IndexBufferBase {
-    IndexBufferGL(std::unique_ptr<gfx::IndexBuffer>&& buffer_)
-        : buffer(std::move(buffer_)) {}
-    ~IndexBufferGL() override = default;
-
-    std::unique_ptr<mbgl::gfx::IndexBuffer> buffer;
-};
-
 void DrawableGL::issueUpload(gfx::UploadPass& uploadPass) {
     if (isCustom) {
         return;
@@ -158,14 +150,13 @@ void DrawableGL::issueUpload(gfx::UploadPass& uploadPass) {
     auto& glContext = static_cast<gl::Context&>(context);
     auto& backend = glContext.getBackend();
 
-    bool buildVertexArray = vertexAttributes &&
-                            (vertexAttributes->isModifiedAfter(attributeUpdateTime) ||
-                             std::any_of(impl->segments.begin(), impl->segments.end(), [](const auto& seg) {
-                                 return !static_cast<const DrawSegmentGL&>(*seg).getVertexArray().isValid();
-                             }));
+    impl->buildVertexArray = vertexAttributes &&
+                             (vertexAttributes->isModifiedAfter(attributeUpdateTime) ||
+                              std::any_of(impl->segments.begin(), impl->segments.end(), [](const auto& seg) {
+                                  return !static_cast<const DrawSegmentGL&>(*seg).getVertexArray().isValid();
+                              }));
 
-    gfx::AttributeBindingArray attributeBindings;
-    if (buildVertexArray) {
+    if (impl->buildVertexArray) {
         constexpr auto usage = gfx::BufferUsageType::StaticDraw;
 
         // Apply drawable values to shader defaults
@@ -176,15 +167,15 @@ void DrawableGL::issueUpload(gfx::UploadPass& uploadPass) {
         const auto vertexAttributeIndex = static_cast<std::size_t>(indexAttribute ? indexAttribute->getIndex() : -1);
 
         std::vector<std::unique_ptr<gfx::VertexBufferResource>> vertexBuffers;
-        attributeBindings = uploadPass.buildAttributeBindings(impl->vertexCount,
-                                                              impl->vertexType,
-                                                              vertexAttributeIndex,
-                                                              impl->vertexData,
-                                                              defaults,
-                                                              overrides,
-                                                              usage,
-                                                              attributeUpdateTime,
-                                                              vertexBuffers);
+        impl->attributeBindings = uploadPass.buildAttributeBindings(impl->vertexCount,
+                                                                    impl->vertexType,
+                                                                    vertexAttributeIndex,
+                                                                    impl->vertexData,
+                                                                    defaults,
+                                                                    overrides,
+                                                                    usage,
+                                                                    attributeUpdateTime,
+                                                                    vertexBuffers);
 
         impl->attributeBuffers = std::move(vertexBuffers);
 
@@ -210,31 +201,7 @@ void DrawableGL::issueUpload(gfx::UploadPass& uploadPass) {
         uploadTextures();
     }
 
-    // Create a VAO for each group of vertexes described by a segment
-    for (const auto& seg : impl->segments) {
-        auto& glSeg = static_cast<DrawSegmentGL&>(*seg);
-        const auto& mlSeg = glSeg.getSegment();
-
-        if (mlSeg.indexLength == 0) {
-            continue;
-        }
-
-        for (auto& binding : attributeBindings) {
-            if (binding) {
-                binding->vertexOffset = static_cast<uint32_t>(mlSeg.vertexOffset);
-            }
-        }
-
-        if (!glSeg.getVertexArray().isValid()) {
-            auto vertexArray = glContext.createVertexArray();
-            const auto& indexBuffer = static_cast<IndexBufferGL&>(*impl->indexes->getBuffer());
-            vertexArray.bind(glContext, *indexBuffer.buffer, std::move(attributeBindings));
-            assert(vertexArray.isValid());
-            if (vertexArray.isValid()) {
-                glSeg.setVertexArray(std::move(vertexArray));
-            }
-        }
-    };
+    impl->createVAOs(glContext);
 }
 
 gfx::ColorMode DrawableGL::makeColorMode(PaintParameters& parameters) const {

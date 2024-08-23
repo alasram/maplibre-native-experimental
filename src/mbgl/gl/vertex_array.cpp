@@ -1,11 +1,14 @@
 #include <mbgl/gl/vertex_array.hpp>
 #include <mbgl/gl/index_buffer_resource.hpp>
 #include <mbgl/gl/context.hpp>
+#include <mbgl/util/instrumentation.hpp>
 
 namespace mbgl {
 namespace gl {
 
 void VertexArray::bind(Context& context, const gfx::IndexBuffer& indexBuffer, const AttributeBindingArray& bindings) {
+    MLN_TRACE_FUNC()
+
     context.bindVertexArray = state->vertexArray;
     state->indexBuffer = indexBuffer.getResource<gl::IndexBufferResource>().waitAndGetBuffer();
 
