@@ -32,6 +32,8 @@ void DrawableGL::draw(PaintParameters& parameters) const {
 
     auto& context = static_cast<gl::Context&>(parameters.context);
 
+    impl->createVAOs(context);
+
     if (shader) {
         const auto& shaderGL = static_cast<const ShaderProgramGL&>(*shader);
         if (shaderGL.getGLProgramID() != context.program.getCurrentValue()) {
@@ -200,8 +202,6 @@ void DrawableGL::issueUpload(gfx::UploadPass& uploadPass) {
     if (texturesNeedUpload) {
         uploadTextures();
     }
-
-    impl->createVAOs(glContext);
 }
 
 gfx::ColorMode DrawableGL::makeColorMode(PaintParameters& parameters) const {
