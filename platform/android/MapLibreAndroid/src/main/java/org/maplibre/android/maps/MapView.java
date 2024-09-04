@@ -498,6 +498,28 @@ public class MapView extends FrameLayout implements NativeMapView.ViewCallback {
   }
 
   /**
+   * Set the rendering mode. When renderMode is
+   * RENDERMODE_CONTINUOUSLY, the renderer is called
+   * repeatedly to re-render the scene. When renderMode
+   * is RENDERMODE_WHEN_DIRTY, the renderer only rendered when the surface
+   * is created, or when {@link #requestRender} is called. Defaults to RENDERMODE_WHEN_DIRTY.
+   * <p>
+   * Using RENDERMODE_WHEN_DIRTY can improve battery life and overall system performance
+   * by allowing the GPU and CPU to idle when the view does not need to be updated.
+   * <p>
+   * This method only affects GLSurfaceView. It will ignored when a TextureView surface is used
+   *
+   * @param renderMode one of the RENDERMODE_X constants
+   */
+  public void setRenderMode(int renderMode) {
+    if (mapRenderer != null) {
+      mapRenderer.setRenderMode(renderMode);
+    } else {
+      throw new IllegalStateException("Calling MapView#setRenderMode before mapRenderer is created.");
+    }
+  }
+
+  /**
    * Returns if the map has been destroyed.
    * <p>
    * This method can be used to determine if the result of an asynchronous operation should be set.

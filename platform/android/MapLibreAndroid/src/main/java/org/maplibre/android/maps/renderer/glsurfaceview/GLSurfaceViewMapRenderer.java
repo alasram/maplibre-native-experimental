@@ -123,4 +123,23 @@ public class GLSurfaceViewMapRenderer extends MapRenderer implements GLSurfaceVi
   public void waitForEmpty() {
     glSurfaceView.waitForEmpty();
   }
+
+  /**
+   * Set the rendering mode. When renderMode is
+   * RENDERMODE_CONTINUOUSLY, the renderer is called
+   * repeatedly to re-render the scene. When renderMode
+   * is RENDERMODE_WHEN_DIRTY, the renderer only rendered when the surface
+   * is created, or when {@link #requestRender} is called. Defaults to RENDERMODE_WHEN_DIRTY.
+   * <p>
+   * Using RENDERMODE_WHEN_DIRTY can improve battery life and overall system performance
+   * by allowing the GPU and CPU to idle when the view does not need to be updated.
+   * <p>
+   * This method can only be called after {@link #setRenderer(GLSurfaceView.Renderer)}
+   *
+   * @param renderMode one of the RENDERMODE_X constants
+   */
+  @Override
+  public void setRenderMode(int renderMode) {
+    glSurfaceView.setRenderMode(renderMode);
+  }
 }

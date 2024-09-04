@@ -25,6 +25,7 @@ import javax.microedition.khronos.opengles.GL;
 import javax.microedition.khronos.opengles.GL10;
 
 import static android.opengl.GLSurfaceView.RENDERMODE_CONTINUOUSLY;
+import static android.opengl.GLSurfaceView.RENDERMODE_WHEN_DIRTY;
 
 /**
  * {@link GLSurfaceView} extension that notifies a listener when the view is detached from window,
@@ -205,7 +206,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
    * RENDERMODE_CONTINUOUSLY, the renderer is called
    * repeatedly to re-render the scene. When renderMode
    * is RENDERMODE_WHEN_DIRTY, the renderer only rendered when the surface
-   * is created, or when {@link #requestRender} is called. Defaults to RENDERMODE_CONTINUOUSLY.
+   * is created, or when {@link #requestRender} is called. Defaults to RENDERMODE_WHEN_DIRTY.
    * <p>
    * Using RENDERMODE_WHEN_DIRTY can improve battery life and overall system performance
    * by allowing the GPU and CPU to idle when the view does not need to be updated.
@@ -335,12 +336,12 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
     if (detached && (renderer != null)) {
-      int renderMode = RENDERMODE_CONTINUOUSLY;
+      int renderMode = RENDERMODE_WHEN_DIRTY;
       if (glThread != null) {
         renderMode = glThread.getRenderMode();
       }
       glThread = new GLThread(viewWeakReference);
-      if (renderMode != RENDERMODE_CONTINUOUSLY) {
+      if (renderMode != RENDERMODE_WHEN_DIRTY) {
         glThread.setRenderMode(renderMode);
       }
       glThread.start();
@@ -569,7 +570,7 @@ public class MapLibreGLSurfaceView extends SurfaceView implements SurfaceHolder.
       width = 0;
       height = 0;
       requestRender = true;
-      renderMode = RENDERMODE_CONTINUOUSLY;
+      renderMode = RENDERMODE_WHEN_DIRTY;
       wantRenderNotification = false;
       mGLSurfaceViewWeakRef = glSurfaceViewWeakRef;
     }

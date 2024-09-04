@@ -1,6 +1,8 @@
 package org.maplibre.android.testapp.activity.maplayout
 
 import android.content.Context
+import android.opengl.GLSurfaceView.RENDERMODE_CONTINUOUSLY
+import android.opengl.GLSurfaceView.RENDERMODE_WHEN_DIRTY
 import android.os.Bundle
 import android.view.*
 import android.widget.*
@@ -29,6 +31,7 @@ open class DebugModeActivity : AppCompatActivity(), OnMapReadyCallback, OnFpsCha
     private var actionBarDrawerToggle: ActionBarDrawerToggle? = null
     private var currentStyleIndex = 0
     private var isReportFps = true
+    private var isContinuousRendering = false
     private var fpsView: TextView? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -167,6 +170,13 @@ open class DebugModeActivity : AppCompatActivity(), OnMapReadyCallback, OnFpsCha
             mapView.setMaximumFps(30)
         } else if (itemId == R.id.menu_action_limit_to_60_fps) {
             mapView.setMaximumFps(60)
+        } else if (itemId == R.id.menu_action_toggle_continuous_rendering) {
+            isContinuousRendering = !isContinuousRendering
+            if (isContinuousRendering) {
+                mapView.setRenderMode(RENDERMODE_CONTINUOUSLY)
+            } else {
+                mapView.setRenderMode(RENDERMODE_WHEN_DIRTY)
+            }
         }
         return actionBarDrawerToggle!!.onOptionsItemSelected(item) || super.onOptionsItemSelected(
             item

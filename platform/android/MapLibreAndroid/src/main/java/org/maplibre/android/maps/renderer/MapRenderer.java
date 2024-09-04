@@ -61,6 +61,10 @@ public abstract class MapRenderer implements MapRendererScheduler {
     // Implement if needed
   }
 
+  public void setRenderMode(int renderMode) {
+    // Implement if needed
+  }
+
   public void setOnFpsChangedListener(MapLibreMap.OnFpsChangedListener listener) {
     onFpsChangedListener = listener;
   }
