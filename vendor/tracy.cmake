@@ -5,17 +5,8 @@ else()
     return()
 endif()
 
-include(FetchContent)
-
-FetchContent_Declare(
-    tracy
-    GIT_REPOSITORY "https://github.com/wolfpld/tracy.git"
-    GIT_TAG master
-    GIT_SHALLOW TRUE
-    GIT_PROGRESS TRUE
-)
-
-FetchContent_MakeAvailable(tracy)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/tracy)
+add_library(TracyClient ${CMAKE_CURRENT_LIST_DIR}/tracy/tracy/TracyClient.cpp)
 
 set_target_properties(
     TracyClient
