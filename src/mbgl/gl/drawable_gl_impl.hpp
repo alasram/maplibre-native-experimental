@@ -51,6 +51,8 @@ public:
     GLfloat pointSize = 0.0f;
 
     size_t vertexAttrId = 0;
+
+    void drawTouchBuffer();
 };
 
 struct DrawableGL::DrawSegmentGL final : public gfx::Drawable::DrawSegment {

@@ -13,6 +13,8 @@ public:
 
     UniqueBuffer buffer;
     int byteSize;
+
+    bool drawTouched = false;
 };
 
 } // namespace gl

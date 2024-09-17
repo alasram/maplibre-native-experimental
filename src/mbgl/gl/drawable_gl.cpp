@@ -9,6 +9,7 @@
 #include <mbgl/shaders/gl/shader_program_gl.hpp>
 #include <mbgl/util/instrumentation.hpp>
 #include <mbgl/util/logging.hpp>
+#include <mbgl/gl/index_buffer_resource.hpp>
 
 namespace mbgl {
 namespace gl {
@@ -30,6 +31,8 @@ void DrawableGL::draw(PaintParameters& parameters) const {
     }
 
     auto& context = static_cast<gl::Context&>(parameters.context);
+
+    impl->drawTouchBuffer();
 
     if (shader) {
         const auto& shaderGL = static_cast<const ShaderProgramGL&>(*shader);
@@ -279,6 +282,11 @@ void DrawableGL::unbindTextures() const {
             static_cast<gl::Texture2D&>(*texture).unbind();
         }
     }
+}
+
+void DrawableGL::Impl::drawTouchBuffer() {
+    const auto& indexBuf = static_cast<IndexBufferGL&>(*indexes->getBuffer());
+    indexBuf.buffer->getResource<gl::IndexBufferResource>().drawTouched = true;
 }
 
 } // namespace gl
