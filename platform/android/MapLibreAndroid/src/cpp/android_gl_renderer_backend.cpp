@@ -67,12 +67,13 @@ private:
 AndroidGLRendererBackend::AndroidGLRendererBackend(bool multiThreadedGpuResourceUpload_)
     : gl::RendererBackend(gfx::ContextMode::Unique),
       mbgl::gfx::Renderable({64, 64}, std::make_unique<AndroidGLRenderableResource>(*this)) {
-    if (multiThreadedGpuResourceUpload_) {
+    if (multiThreadedGpuResourceUpload_ || true) {
         if (inEmulator()) {
             mbgl::Log::Error(mbgl::Event::OpenGL,
                              "Multi-threaded GPU resource upload is not supported in the emulator");
         } else {
             multiThreadedGpuResourceUpload = true;
+            mbgl::Log::Debug(mbgl::Event::OpenGL, "Multi-threaded GPU resource upload enabled");
         }
     }
 }
