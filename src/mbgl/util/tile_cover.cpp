@@ -1,4 +1,5 @@
 #include <mbgl/map/transform_state.hpp>
+#include <mbgl/math/clamp.hpp>
 #include <mbgl/math/log2.hpp>
 #include <mbgl/util/bounding_volumes.hpp>
 #include <mbgl/util/constants.hpp>
@@ -6,6 +7,7 @@
 #include <mbgl/util/tile_coordinate.hpp>
 #include <mbgl/util/tile_cover.hpp>
 #include <mbgl/util/tile_cover_impl.hpp>
+#include <mbgl/util/logging.hpp>
 
 #include <functional>
 #include <list>
@@ -173,9 +175,16 @@ std::vector<OverscaledTileID> tileCover(const TransformState& state,
         double sqrDist;
     };
 
+    double distanceScale = 1;
+    double distanceBias = 0;
+    double pitchScale = 1;
+    double pitchBias = -(60.0 / 180.0) * pi;
+
+    double transformedPitch = state.getPitch() * pitchScale + pitchBias;
+
     const double numTiles = std::pow(2.0, z);
     const double worldSize = Projection::worldSize(state.getScale());
-    const uint8_t minZoom = state.getPitch() <= (60.0 / 180.0) * pi ? z : 0;
+    const uint8_t minZoom = static_cast<uint8_t>((1.0 - clamp(transformedPitch, 0.0, pi / 2.0) / (pi / 2.0)) * z);
     const uint8_t maxZoom = z;
     const uint8_t overscaledZoom = overscaledZ.value_or(z);
     const bool flippedY = state.getViewportMode() == ViewportMode::FlippedY;
@@ -189,7 +198,7 @@ std::vector<OverscaledTileID> tileCover(const TransformState& state,
 
     // There should always be a certain number of maximum zoom level tiles
     // surrounding the center location
-    const double radiusOfMaxLvlLodInTiles = 3;
+    const double radiusOfMaxLvlLodInTiles = 3 + distanceBias;
 
     const auto newRootTile = [&](int16_t wrap) -> Node {
         return {AABB({{wrap * numTiles, 0.0, 0.0}}, {{(wrap + 1) * numTiles, numTiles, 0.0}}),
@@ -235,14 +244,16 @@ std::vector<OverscaledTileID> tileCover(const TransformState& state,
         // there's always a certain number of maxLevel tiles next to the map
         // center. Using the fact that a parent node in quadtree is twice the
         // size of its children (per dimension) we can define distance
-        // thresholds for each relative level: f(k) = offset + 2 + 4 + 8 + 16 +
-        // ... + 2^k. This is the same as "offset+2^(k+1)-2"
-        const double distToSplit = radiusOfMaxLvlLodInTiles + (1 << (maxZoom - node.zoom)) - 2;
+        // thresholds for each relative level:
+        // f(k) = offset + (2 + 4 + 8 + 16 + ... + 2^k) * distanceScale
+        // This is the same as "offset+2^(k+1)-2"
+        // // f(k) = offset + (2^(k+1)-2) * distanceScale
+        const double distToSplit = radiusOfMaxLvlLodInTiles + ((1 << (maxZoom - node.zoom)) - 2) * distanceScale;
 
         // Have we reached the target depth or is the tile too far away to be any split further?
         if (node.zoom == maxZoom || (*longestDim > distToSplit && node.zoom >= minZoom)) {
-            // Perform precise intersection test between the frustum and aabb.
-            // This will cull < 1% false positives missed by the original test
+            // Perform precise intersection test between the frustum and aabb. This will cull < 1% false positives
+            // missed by the original test
             if (node.fullyVisible || frustum.intersectsPrecise(node.aabb, true) != IntersectionResult::Separate) {
                 const OverscaledTileID id = {
                     node.zoom == maxZoom ? overscaledZoom : node.zoom, node.wrap, node.zoom, node.x, node.y};
@@ -279,6 +290,8 @@ std::vector<OverscaledTileID> tileCover(const TransformState& state,
     for (const auto& tile : result) {
         ids.push_back(tile.id);
     }
+
+    Log::Error(Event::General, "######################################  TileCount: " + std::to_string(ids.size()));
 
     return ids;
 }
