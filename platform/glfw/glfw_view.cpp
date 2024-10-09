@@ -64,7 +64,6 @@
 using namespace std::numbers;
 
 #ifdef ENABLE_LOCATION_INDICATOR
-
 namespace {
 const std::string mbglPuckAssetsPath{MAPBOX_PUCK_ASSETS_PATH};
 
@@ -79,7 +78,7 @@ std::array<double, 3> toArray(const mbgl::LatLng &crd) {
     return {crd.latitude(), crd.longitude(), 0};
 }
 } // namespace
-#endif
+#endif // ENABLE_LOCATION_INDICATOR
 
 class SnapshotObserver final : public mbgl::MapSnapshotterObserver {
 public:
@@ -95,6 +94,60 @@ public:
 };
 
 namespace {
+
+enum class TileLodMode {
+    Default,    // Default Tile LOD parameters
+    NoLod,      // Disable LOD
+    Reduced,    // Reduce LOD away from camera
+    Aggressive, // Aggressively reduce LOD away from camera at the detriment of quality
+};
+
+TileLodMode nextTileLodMode(TileLodMode current) {
+    switch (current) {
+        case TileLodMode::Default:
+            return TileLodMode::NoLod;
+        case TileLodMode::NoLod:
+            return TileLodMode::Reduced;
+        case TileLodMode::Reduced:
+            return TileLodMode::Aggressive;
+        case TileLodMode::Aggressive:
+            return TileLodMode::Default;
+    }
+}
+
+void cycleTileLodMode(mbgl::Map &map) {
+    // TileLodMode::Default parameters
+    static const auto defaultRadius = map.getTileLodMinRadius();
+    static const auto defaultScale = map.getTileLodScale();
+    static const auto defaultPitchThreshold = map.getTileLodPitchThreshold();
+
+    static TileLodMode mode = TileLodMode::Default;
+    mode = nextTileLodMode(mode);
+
+    switch (mode) {
+        case TileLodMode::Default:
+            map.setTileLodMinRadius(defaultRadius);
+            map.setTileLodScale(defaultScale);
+            map.setTileLodPitchThreshold(defaultPitchThreshold);
+            break;
+        case TileLodMode::NoLod:
+            // When LOD is off we set a maximum PitchThreshold
+            map.setTileLodMinRadius(std::numbers::pi);
+            break;
+        case TileLodMode::Reduced:
+            map.setTileLodMinRadius(2);
+            map.setTileLodScale(1.5);
+            map.setTileLodPitchThreshold(std::numbers::pi / 4);
+            break;
+        case TileLodMode::Aggressive:
+            map.setTileLodMinRadius(1);
+            map.setTileLodScale(2);
+            map.setTileLodPitchThreshold(0);
+            break;
+    }
+    map.triggerRepaint();
+}
+
 void addFillExtrusionLayer(mbgl::style::Style &style, bool visible) {
     MLN_TRACE_FUNC();
 
@@ -282,6 +335,7 @@ GLFWView::GLFWView(bool fullscreen_,
     printf("- Press `F1` to generate a render test for the current view\n");
     printf("\n");
     printf("- Press `Tab` to cycle through the map debug options\n");
+    printf("- Press `V` to cycle through Tile LOD modes\n");
     printf("- Press `Esc` to quit\n");
     printf("\n");
     printf(
@@ -556,6 +610,9 @@ void GLFWView::onKey(GLFWwindow *window, int key, int /*scancode*/, int action, 
                 view->freeCameraDemoPhase = 0;
                 view->freeCameraDemoStartTime = mbgl::Clock::now();
                 view->invalidate();
+            } break;
+            case GLFW_KEY_V: {
+                cycleTileLodMode(*view->map);
             } break;
         }
     }
