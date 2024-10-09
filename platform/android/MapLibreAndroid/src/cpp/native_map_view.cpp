@@ -1220,6 +1220,30 @@ jni::jboolean NativeMapView::getTileCacheEnabled(JNIEnv&) {
     return jni::jboolean(rendererFrontend->getTileCacheEnabled());
 }
 
+void NativeMapView::setTileLodMinRadius(JNIEnv&, jni::jdouble radius) {
+    map->setTileLodMinRadius(radius);
+}
+
+jni::jdouble NativeMapView::getTileLodMinRadius(JNIEnv&) {
+    return jni::jdouble(map->getTileLodMinRadius());
+}
+
+void NativeMapView::setTileLodScale(JNIEnv&, jni::jdouble scale) {
+    map->setTileLodScale(scale);
+}
+
+jni::jdouble NativeMapView::getTileLodScale(JNIEnv&) {
+    return jni::jdouble(map->getTileLodScale());
+}
+
+void NativeMapView::setTileLodPitchThreshold(JNIEnv&, jni::jdouble threshold) {
+    map->setTileLodPitchThreshold(threshold);
+}
+
+jni::jdouble NativeMapView::getTileLodPitchThreshold(JNIEnv&) {
+    return jni::jdouble(map->getTileLodPitchThreshold());
+}
+
 mbgl::Map& NativeMapView::getMap() {
     return *map;
 }
@@ -1339,6 +1363,12 @@ void NativeMapView::registerNative(jni::JNIEnv& env) {
         METHOD(&NativeMapView::getPrefetchZoomDelta, "nativeGetPrefetchZoomDelta"),
         METHOD(&NativeMapView::setTileCacheEnabled, "nativeSetTileCacheEnabled"),
         METHOD(&NativeMapView::getTileCacheEnabled, "nativeGetTileCacheEnabled"),
+        METHOD(&NativeMapView::setTileLodMinRadius, "nativeSetTileLodMinRadius"),
+        METHOD(&NativeMapView::getTileLodMinRadius, "nativeGetTileLodMinRadius"),
+        METHOD(&NativeMapView::setTileLodScale, "nativeSetTileLodScale"),
+        METHOD(&NativeMapView::getTileLodScale, "nativeGetTileLodScale"),
+        METHOD(&NativeMapView::setTileLodPitchThreshold, "nativeSetTileLodPitchThreshold"),
+        METHOD(&NativeMapView::getTileLodPitchThreshold, "nativeGetTileLodPitchThreshold"),
         METHOD(&NativeMapView::triggerRepaint, "nativeTriggerRepaint"));
 }
 

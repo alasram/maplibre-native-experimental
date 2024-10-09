@@ -295,6 +295,18 @@ public:
 
     jni::jboolean getTileCacheEnabled(JNIEnv&);
 
+    void setTileLodMinRadius(JNIEnv&, jni::jdouble);
+
+    jni::jdouble getTileLodMinRadius(JNIEnv&);
+
+    void setTileLodScale(JNIEnv&, jni::jdouble);
+
+    jni::jdouble getTileLodScale(JNIEnv&);
+
+    void setTileLodPitchThreshold(JNIEnv&, jni::jdouble);
+
+    jni::jdouble getTileLodPitchThreshold(JNIEnv&);
+
     mbgl::Map& getMap();
 
     void triggerRepaint(JNIEnv&);

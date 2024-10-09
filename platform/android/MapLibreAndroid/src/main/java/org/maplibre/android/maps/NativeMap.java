@@ -237,6 +237,18 @@ interface NativeMap {
 
   boolean getTileCacheEnabled();
 
+  void setTileLodMinRadius(double radius);
+
+  double getTileLodMinRadius();
+
+  void setTileLodScale(double scale);
+
+  double getTileLodScale();
+
+  void setTileLodPitchThreshold(double threshold);
+
+  double getTileLodPitchThreshold();
+
   void setGestureInProgress(boolean inProgress);
 
   float getPixelRatio();

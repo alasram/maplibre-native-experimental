@@ -823,6 +823,54 @@ final class NativeMapView implements NativeMap {
     }
     return nativeGetTileCacheEnabled();
   }
+
+  @Override
+  public void setTileLodMinRadius(double radius) {
+    if (checkState("setTileLodMinRadius")) {
+      return;
+    }
+    nativeSetTileLodMinRadius(radius);
+  }
+
+  @Override
+  public double getTileLodMinRadius() {
+    if (checkState("getTileLodMinRadius")) {
+      return 0;
+    }
+    return nativeGetTileLodMinRadius();
+  }
+
+  @Override
+  public void setTileLodScale(double scale) {
+    if (checkState("setTileLodScale")) {
+      return;
+    }
+    nativeSetTileLodScale(scale);
+  }
+
+  @Override
+  public double getTileLodScale() {
+    if (checkState("getTileLodScale")) {
+      return 0;
+    }
+    return nativeGetTileLodScale();
+  }
+
+  @Override
+  public void setTileLodPitchThreshold(double threshold) {
+    if (checkState("setTileLodPitchThreshold")) {
+      return;
+    }
+    nativeSetTileLodPitchThreshold(threshold);
+  }
+
+  @Override
+  public double getTileLodPitchThreshold() {
+    if (checkState("getTileLodPitchThreshold")) {
+      return 0;
+    }
+    return nativeGetTileLodPitchThreshold();
+  }
   // Runtime style Api
 
   @Override
@@ -1593,6 +1641,24 @@ final class NativeMapView implements NativeMap {
 
   @Keep
   private native int nativeGetPrefetchZoomDelta();
+
+  @Keep
+  private native void nativeSetTileLodMinRadius(double radius);
+
+  @Keep
+  private native double nativeGetTileLodMinRadius();
+
+  @Keep
+  private native void nativeSetTileLodScale(double scale);
+
+  @Keep
+  private native double nativeGetTileLodScale();
+
+  @Keep
+  private native void nativeSetTileLodPitchThreshold(double threshold);
+
+  @Keep
+  private native double nativeGetTileLodPitchThreshold();
 
   @Override
   public long getNativePtr() {

@@ -102,6 +102,11 @@ void TilePyramid::update(const std::vector<Immutable<style::LayerProperties>>& l
     std::vector<OverscaledTileID> idealTiles;
     std::vector<OverscaledTileID> panTiles;
 
+    util::TileCoverParameters tileCoverParameters = {parameters.transformState,
+                                                     parameters.tileLodMinRadius,
+                                                     parameters.tileLodScale,
+                                                     parameters.tileLodPitchThreshold};
+
     if (overscaledZoom >= zoomRange.min) {
         int32_t idealZoom = std::min<int32_t>(zoomRange.max, overscaledZoom);
 
@@ -122,11 +127,11 @@ void TilePyramid::update(const std::vector<Immutable<style::LayerProperties>>& l
             }
 
             if (panZoom < idealZoom) {
-                panTiles = util::tileCover(parameters.transformState, panZoom);
+                panTiles = util::tileCover(tileCoverParameters, panZoom);
             }
         }
 
-        idealTiles = util::tileCover(parameters.transformState, idealZoom, tileZoom);
+        idealTiles = util::tileCover(tileCoverParameters, idealZoom, tileZoom);
         if (parameters.mode == MapMode::Tile && type != SourceType::Raster && type != SourceType::RasterDEM &&
             idealTiles.size() > 1) {
             mbgl::Log::Warning(mbgl::Event::General,
